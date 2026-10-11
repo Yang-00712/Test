@@ -223,16 +223,15 @@
                 <span id="split-label">號碼前六碼怎麼拆</span>
                 <div class="segmented" role="group" aria-labelledby="split-label" id="split">
                   <button type="button" class="segment active" data-split="222">2+2+2</button>
-                  <button type="button" class="segment" data-split="33">3+3</button>
-                  <button type="button" class="segment" data-split="123">1+2+3</button>
-                  <button type="button" class="segment" data-split="111111">1+1+…+1</button>
+                  <button type="button" class="segment" data-split="111111">1+1+1+1+1+1</button>
                 </div>
-                <small>原作者用 2+2+2，拆法不同，加總和結果都會不一樣。</small>
+                <small>原作者用 2+2+2。每一位相加的加總很小，一定走公式二。</small>
               </div>
               <div class="field">
                 <label for="step">公式一每一組加多少</label>
                 <input id="step" type="number" inputmode="decimal" min="0" step="0.001" value="0.033">
-                <small>原作者用 0.033。公式二每一組加的是中獎率本身。</small>
+                <small>原作者說這不是固定值：把中獎率往後退一位，30% 他取 0.33 退成 0.033。換別款就按下面的按鈕重算。公式二每一組加的是中獎率本身。</small>
+                <button type="button" class="button small light" id="step-auto" style="justify-self: start">依中獎率換算（÷10）</button>
               </div>
               <div class="field">
                 <label for="count">要算幾組</label>
@@ -396,7 +395,7 @@
       });
     }
 
-    var SPLITS = { "222": [2, 2, 2], "33": [3, 3], "123": [1, 2, 3], "111111": [1, 1, 1, 1, 1, 1] };
+    var SPLITS = { "222": [2, 2, 2], "111111": [1, 1, 1, 1, 1, 1] };
 
     function parseSerial(raw, how) {
       var digits = String(raw).replace(/\D/g, "");
@@ -484,7 +483,7 @@
         ? "加總 " + ticket.d + " 小於 100，用公式二：加總 × (1 + 中獎率 × 組數)。加總 100 以上才用公式一：加總 × (中獎率 + " + plain(step) + " × 組數)。"
         : "加總 " + ticket.d + " 有 100 以上，用公式一：加總 × (中獎率 + " + plain(step) + " × 組數)。加總小於 100 時改用公式二：加總 × (1 + 中獎率 × 組數)。";
 
-      var splitName = { "222": "2+2+2", "33": "3+3", "123": "1+2+3", "111111": "1+1+1+1+1+1" }[split];
+      var splitName = { "222": "2+2+2", "111111": "1+1+1+1+1+1" }[split];
       out.steps.innerHTML =
         '<div class="mini-stat"><span>號碼前六碼拆成 ' + splitName + " 相加</span><strong>" + ticket.parts.join(" + ") + " = " + ticket.d + "</strong></div>" +
         '<div class="mini-stat"><span>' + (second ? "底數 1 加上第 " + featured.k + " 組的加成（中獎率 × " + featured.k + "）" : "中獎率加上第 " + featured.k + " 組的加成") + "</span><strong>" + plain(base) + " + " + plain(stepUsed) + " × " + featured.k + " = " + plain(featured.multiplier) + "</strong></div>" +
@@ -594,6 +593,13 @@
     });
     Array.prototype.forEach.call(document.querySelectorAll("#split .segment"), function (button) {
       button.addEventListener("click", function () { split = button.getAttribute("data-split"); render(); });
+    });
+    byId("step-auto").addEventListener("click", function () {
+      var rate = Number(els.rate.value);
+      if (!isFinite(rate) || els.rate.value === "") { toast("先填中獎率。"); return; }
+      els.step.value = String(Math.round(rate) / 1000);
+      render();
+      toast("加成改成 " + els.step.value + "（中獎率 " + rate + "% ÷ 10）。");
     });
     render();
 

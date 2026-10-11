@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 刮刮樂公式試算（命令列版）。
 // 來源：https://www.threads.com/@paulchu0258/post/DeV5aAamdix
-// 用法：node scratch.mjs 034391-055 --rate 30 [--step 0.033] [--count 30] [--max 99] [--min 0] [--split 222|33|123|111111]
+// 用法：node scratch.mjs 034391-055 --rate 30 [--step 0.033] [--count 30] [--max 99] [--min 0] [--split 222|111111]
 // 加總 100 以上：加總 × (中獎率 + step × k)；加總小於 100：加總 × (1 + 中獎率 × k)。
 import { parseArgs } from "node:util";
 
@@ -10,12 +10,7 @@ const pad2 = (n) => String(n).padStart(2, "0");
 const pad3 = (n) => String(n).padStart(3, "0");
 const plain = (value) => String(round6(value));
 
-const SPLITS = {
-  222: [2, 2, 2],
-  33: [3, 3],
-  123: [1, 2, 3],
-  111111: [1, 1, 1, 1, 1, 1],
-};
+const SPLITS = { 222: [2, 2, 2], 111111: [1, 1, 1, 1, 1, 1] };
 
 /** 把彩券編號前六碼依拆法拆開相加。接受 034391、034391-055、034391055。 */
 export function parseSerial(raw, split = "222") {
@@ -88,7 +83,7 @@ function main() {
   }
   const ticket = parseSerial(serial, values.split);
   if (!ticket) {
-    usage("彩券編號至少要有 6 位數字，--split 只能是 222、33、123 或 111111。");
+    usage("彩券編號至少要有 6 位數字，--split 只能是 222 或 111111。");
   }
   if (values.rate === undefined) {
     usage("缺少 --rate（彩券背面印的中獎率，百分比）。");
