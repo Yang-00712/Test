@@ -385,7 +385,7 @@
           <div class="card-head">
             <div class="card-label">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>
-              <h2>一本 100 張，挑哪幾張</h2>
+              <h2 id="book-title">一本 100 張，挑哪幾張</h2>
             </div>
           </div>
           <div class="book" id="book"></div>
@@ -650,6 +650,7 @@
       }
       out.summary.textContent = summary;
 
+      byId("book-title").textContent = "一本 " + (max + 1) + " 張，挑哪幾張";
       var cells = "";
       for (var i = 0; i <= max; i += 1) {
         var cls = "cell" + (i < min ? " sold" : "") + (seen[i] ? " hit" : "") + (ticket.index === i ? " own" : "");
