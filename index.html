@@ -162,6 +162,12 @@
   .row-delete { margin-right: 6px; color: var(--muted); }
   .empty-state { padding: 28px 16px; text-align: center; color: var(--muted); line-height: 1.7; font-size: 13px; }
   .count-tag { margin-left: auto; }
+  .stats-strip { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 13px; background: #fbfcfa; overflow: hidden; margin-bottom: 16px; }
+  .stats-strip div { padding: 14px 18px; border-right: 1px solid var(--line); min-width: 0; }
+  .stats-strip div:last-child { border: 0; }
+  .stats-strip strong { font-size: 21px; font-weight: 650; font-variant-numeric: tabular-nums; display: block; overflow-wrap: anywhere; }
+  .stats-strip span { display: block; font-size: 11px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+  @media (max-width: 540px) { .stats-strip { grid-template-columns: 1fr; } .stats-strip div { border-right: 0; border-bottom: 1px solid var(--line); } .stats-strip div:last-child { border: 0; } }
   .toast { position: fixed; left: 50%; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 11; background: var(--toast); color: #fff; box-shadow: 0 6px 26px #13282120; border-radius: 12px; padding: 14px 20px; font-size: 13px; max-width: calc(100% - 28px); text-align: center; line-height: 1.6; }
   .manual-dock { position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 9px 10px; width: min(550px, calc(100vw - 28px)); background: var(--deep); border-radius: 12px; box-shadow: var(--shadow-dock); color: #fff; }
   .manual-dock > span { font-size: 12px; margin-right: auto; line-height: 1.5; }
@@ -304,6 +310,33 @@
             <h3 style="margin: 20px 0 10px">這一本裡所有候選號碼</h3>
             <div class="tags" id="picks"></div>
             <p class="inline-hint" id="summary"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-label="官方獎金結構" id="official">
+        <div class="card-pad">
+          <div class="eyebrow">官方公告</div>
+          <div class="card-head">
+            <div class="card-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 11v6M12 7h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z"/></svg>
+              <h2 id="official-title">這款的真實機率</h2>
+            </div>
+          </div>
+          <div class="empty-state" id="official-empty">上面選一款彩券，這裡會列出台彩公告的各獎項張數、機率和期望值。</div>
+          <div id="official-body" hidden>
+            <div class="stats-strip">
+              <div><strong id="o-rate"></strong><span>整體中獎率（含只拿回票價）</span></div>
+              <div><strong id="o-profit"></strong><span>刮到比票價多的機率</span></div>
+              <div><strong id="o-ev"></strong><span id="o-ev-note">每張期望值</span></div>
+            </div>
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead><tr><th>獎項</th><th>張數</th><th>機率</th><th>每幾張有一張</th></tr></thead>
+                <tbody id="o-tbody"></tbody>
+              </table>
+            </div>
+            <p class="inline-hint" id="o-note"></p>
           </div>
         </div>
       </section>
@@ -621,16 +654,45 @@
       var shown = order.reduce(function (n, g) { return n + groups[g].length; }, 0);
       ticketHint.textContent = q ? "找到 " + shown + " 款。" : "共 " + TICKETS.length + " 款，資料來自台彩上市公告的「本期整體中獎率」。";
     }
+    var oEls = { empty: byId("official-empty"), body: byId("official-body"), title: byId("official-title"), rate: byId("o-rate"), profit: byId("o-profit"), ev: byId("o-ev"), evNote: byId("o-ev-note"), tbody: byId("o-tbody"), note: byId("o-note") };
+    function fmtMoney(n) { return "NT$" + Number(n).toLocaleString("en-US"); }
+    function fmtInt(n) { return Number(n).toLocaleString("en-US"); }
+    function fmtPct(p) { return p >= 1 ? p.toFixed(2) + "%" : p >= 0.01 ? p.toFixed(3) + "%" : p.toExponential(2) + "%"; }
+    function renderOfficial(t) {
+      if (!t || !t.tiers || !t.issued) {
+        oEls.body.hidden = true; oEls.empty.hidden = false; oEls.title.textContent = "這款的真實機率";
+        if (t) { oEls.empty.textContent = t.name + "：台彩公告只有整體中獎率 " + t.rate.toFixed(2) + "%，沒有各獎項張數。"; }
+        return;
+      }
+      var issued = t.issued;
+      var winners = 0, profitWinners = 0, payout = 0;
+      t.tiers.forEach(function (row) { winners += row[1]; payout += row[0] * row[1]; if (row[0] > t.price) { profitWinners += row[1]; } });
+      var ev = payout / issued;
+      oEls.title.textContent = t.name + " 的真實機率";
+      oEls.rate.textContent = t.rate.toFixed(2) + "%";
+      oEls.profit.textContent = (profitWinners / issued * 100).toFixed(2) + "%";
+      oEls.ev.textContent = "NT$" + ev.toFixed(1);
+      oEls.evNote.textContent = "每張期望值，售價 $" + t.price + "，回本率 " + (ev / t.price * 100).toFixed(1) + "%";
+      oEls.tbody.innerHTML = t.tiers.map(function (row) {
+        var p = row[1] / issued * 100;
+        var label = row[2] ? row[2] : fmtMoney(row[0]);
+        return "<tr" + (row[0] === t.tiers[0][0] ? ' class="featured"' : "") + '><td>' + escapeHtml(label) + '</td><td class="num">' + fmtInt(row[1]) + '</td><td class="num">' + fmtPct(p) + '</td><td class="num">1 : ' + fmtInt(Math.round(issued / row[1])) + "</td></tr>";
+      }).join("");
+      var calc = winners / issued * 100;
+      oEls.note.textContent = "發行 " + fmtInt(issued) + " 張，共 " + fmtInt(winners) + " 張中獎" + (Math.abs(calc - t.rate) > 0.06 ? "（表內張數算出來是 " + calc.toFixed(2) + "%，和公告的整體中獎率不一致，以公告為準）" : "") + "。這些機率對每一張票都一樣，和編號、本內第幾張沒有關係。資料來自台彩上市公告。";
+      oEls.empty.hidden = true; oEls.body.hidden = false;
+    }
     function applyTicket(vol) {
       var t = null;
       TICKETS.forEach(function (x) { if (x.vol === vol) { t = x; } });
       if (!t) { return; }
       els.rate.value = String(t.rate);
       render();
+      renderOfficial(t);
       toast(t.name + "：台彩公告中獎率 " + t.rate.toFixed(2) + "%，已填入。");
     }
     ticketSearch.addEventListener("input", function () { fillTicketOptions(ticketSearch.value); });
-    ticketSelect.addEventListener("change", function () { if (ticketSelect.value) { applyTicket(ticketSelect.value); } });
+    ticketSelect.addEventListener("change", function () { if (ticketSelect.value) { applyTicket(ticketSelect.value); } else { renderOfficial(null); } });
     fetch("tickets.json").then(function (r) { return r.json(); }).then(function (data) {
       TICKETS = (data.tickets || []).filter(function (t) { return typeof t.rate === "number"; });
       fillTicketOptions("");

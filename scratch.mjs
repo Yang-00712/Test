@@ -67,6 +67,34 @@ export function findTicket(query) {
   return matches[0] ?? null;
 }
 
+/** 列出官方獎金結構：各獎項張數、機率、期望值。 */
+function printStructure(t) {
+  if (!t.tiers || !t.issued) {
+    console.log("（這款公告沒有各獎項張數）");
+    return;
+  }
+  const fmt = (n) => Number(n).toLocaleString("en-US");
+  let winners = 0;
+  let profitWinners = 0;
+  let payout = 0;
+  for (const [prize, count] of t.tiers) {
+    winners += count;
+    payout += prize * count;
+    if (prize > t.price) {
+      profitWinners += count;
+    }
+  }
+  console.log(
+    `發行 ${fmt(t.issued)} 張，中獎 ${fmt(winners)} 張（${((winners / t.issued) * 100).toFixed(2)}%），刮到比票價多：${((profitWinners / t.issued) * 100).toFixed(2)}%，每張期望值 NT$${(payout / t.issued).toFixed(1)}（回本率 ${((payout / t.issued / t.price) * 100).toFixed(1)}%）`,
+  );
+  for (const [prize, count, label] of t.tiers) {
+    console.log(
+      `  ${(label ?? `NT$${fmt(prize)}`).padEnd(14)} ${fmt(count).padStart(10)} 張   1 : ${fmt(Math.round(t.issued / count))}`,
+    );
+  }
+  console.log("");
+}
+
 function usage(message) {
   if (message) {
     console.error(message);
@@ -109,6 +137,7 @@ function main() {
     console.log(
       `款式 ${found.vol} ${found.name}（$${found.price}）：台彩公告中獎率 ${found.rate.toFixed(2)}%`,
     );
+    printStructure(found);
   }
   if (rateText === undefined) {
     usage("缺少 --rate（彩券背面印的中獎率，百分比），或用 --ticket 選款式。");
