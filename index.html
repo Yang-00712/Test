@@ -359,6 +359,7 @@
     var WALLET_KEY = "scratch-wallet";
     var split = "222";
     var current = null;
+    var SPLITS = { "222": [2, 2, 2], "111111": [1, 1, 1, 1, 1, 1] };
 
     function load(key, fallback) {
       try { var v = JSON.parse(localStorage.getItem(key) || "null"); return v === null ? fallback : v; } catch (error) { return fallback; }
@@ -395,7 +396,6 @@
       });
     }
 
-    var SPLITS = { "222": [2, 2, 2], "111111": [1, 1, 1, 1, 1, 1] };
 
     function parseSerial(raw, how) {
       var digits = String(raw).replace(/\D/g, "");
