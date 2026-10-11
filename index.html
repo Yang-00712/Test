@@ -144,6 +144,8 @@
   .icon-button { width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 10px; background: transparent; flex-shrink: 0; border-radius: 12px; color: inherit; }
 
   .segmented { display: flex; border-radius: 10px; background: var(--control-raised); padding: 4px; gap: 3px; }
+  .segmented.wrap { flex-wrap: wrap; }
+  .segmented.wrap .segment { flex: 1 1 28%; }
   .segment { flex: 1; padding: 9px 4px; background: transparent; color: #6b7f70; border-radius: 7px; font-size: 13px; white-space: nowrap; min-height: 40px; }
   .segment.active { background: var(--paper); color: var(--teal); box-shadow: 0 2px 5px #263b2d0c; font-weight: 700; }
   .foot-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
@@ -215,6 +217,19 @@
                 <button type="button" class="button small light" data-serial="034391-055" data-rate="30">範例：嗨刮123</button>
                 <button type="button" class="button small light" data-serial="014129-092" data-rate="30">範例：錢進888</button>
               </div>
+            </div>
+            <div class="field">
+              <span id="price-label">面額</span>
+              <div class="segmented wrap" role="group" aria-labelledby="price-label" id="price">
+                <button type="button" class="segment" data-price="100">$100</button>
+                <button type="button" class="segment" data-price="200">$200</button>
+                <button type="button" class="segment" data-price="300">$300</button>
+                <button type="button" class="segment" data-price="500">$500</button>
+                <button type="button" class="segment" data-price="1000">$1000</button>
+                <button type="button" class="segment" data-price="2000">$2000</button>
+                <button type="button" class="segment active" data-price="">不限</button>
+              </div>
+              <small id="price-hint">選面額會帶入該面額歷年的典型中獎率，下面的款式清單也只剩這個面額。</small>
             </div>
             <div class="field">
               <label for="ticket-search">哪一款彩券</label>
@@ -404,6 +419,16 @@
     var split = "222";
     var current = null;
     var SPLITS = { "222": [2, 2, 2], "111111": [1, 1, 1, 1, 1, 1] };
+    // 各面額歷年（2014–2026，台彩公告）中獎率：款數、最低、中位、最高。中位數當預設值。
+    var PRICE_PRESETS = {
+      "100": { n: 202, min: 22.12, median: 33.0, max: 100.0 },
+      "200": { n: 343, min: 24.03, median: 32.0, max: 50.35 },
+      "300": { n: 56, min: 31.0, median: 36.0, max: 40.15 },
+      "500": { n: 81, min: 31.43, median: 41.0, max: 100.0 },
+      "1000": { n: 29, min: 43.97, median: 70.0, max: 70.79 },
+      "2000": { n: 14, min: 69.33, median: 69.33, max: 82.55 }
+    };
+    var price = "";
 
     function load(key, fallback) {
       try { var v = JSON.parse(localStorage.getItem(key) || "null"); return v === null ? fallback : v; } catch (error) { return fallback; }
@@ -420,6 +445,7 @@
         }
       }
       if (SPLITS[saved.split]) { split = saved.split; }
+      if (PRICE_PRESETS[saved.price]) { price = saved.price; }
     }
 
     var toastTimer = null;
@@ -479,6 +505,11 @@
       current = null;
     }
 
+    function syncPriceButtons() {
+      Array.prototype.forEach.call(document.querySelectorAll("#price .segment"), function (button) {
+        button.classList.toggle("active", button.getAttribute("data-price") === price);
+      });
+    }
     function syncSplitButtons() {
       Array.prototype.forEach.call(document.querySelectorAll("#split .segment"), function (button) {
         button.classList.toggle("active", button.getAttribute("data-split") === split);
@@ -486,8 +517,9 @@
     }
 
     function render() {
-      store(KEY, { serial: els.serial.value, rate: els.rate.value, step: els.step.value, count: els.count.value, max: els.max.value, min: els.min.value, split: split });
+      store(KEY, { serial: els.serial.value, rate: els.rate.value, step: els.step.value, count: els.count.value, max: els.max.value, min: els.min.value, split: split, price: price });
       syncSplitButtons();
+      syncPriceButtons();
 
       var ticket = parseSerial(els.serial.value, split);
       var rate = Number(els.rate.value) / 100;
@@ -639,6 +671,7 @@
       var order = [];
       TICKETS.forEach(function (t) {
         var hay = (t.vol + " " + t.name + " " + t.price).toLowerCase();
+        if (price && String(t.price) !== price) { return; }
         if (q && hay.indexOf(q) === -1) { return; }
         var g = t.onSale ? "熱賣中" : t.start.slice(0, 4) + " 年";
         if (!groups[g]) { groups[g] = []; order.push(g); }
@@ -652,7 +685,7 @@
       });
       ticketSelect.innerHTML = htmlOut;
       var shown = order.reduce(function (n, g) { return n + groups[g].length; }, 0);
-      ticketHint.textContent = q ? "找到 " + shown + " 款。" : "共 " + TICKETS.length + " 款，資料來自台彩上市公告的「本期整體中獎率」。";
+      ticketHint.textContent = (q || price) ? "找到 " + shown + " 款。" : "共 " + TICKETS.length + " 款，資料來自台彩上市公告的「本期整體中獎率」。";
     }
     var oEls = { empty: byId("official-empty"), body: byId("official-body"), title: byId("official-title"), rate: byId("o-rate"), profit: byId("o-profit"), ev: byId("o-ev"), evNote: byId("o-ev-note"), tbody: byId("o-tbody"), note: byId("o-note") };
     function fmtMoney(n) { return "NT$" + Number(n).toLocaleString("en-US"); }
@@ -687,6 +720,7 @@
       TICKETS.forEach(function (x) { if (x.vol === vol) { t = x; } });
       if (!t) { return; }
       els.rate.value = String(t.rate);
+      if (PRICE_PRESETS[String(t.price)]) { price = String(t.price); }
       render();
       renderOfficial(t);
       toast(t.name + "：台彩公告中獎率 " + t.rate.toFixed(2) + "%，已填入。");
@@ -701,6 +735,24 @@
       button.addEventListener("click", function () {
         els.serial.value = button.getAttribute("data-serial");
         els.rate.value = button.getAttribute("data-rate");
+        render();
+      });
+    });
+    var priceHint = byId("price-hint");
+    Array.prototype.forEach.call(document.querySelectorAll("#price .segment"), function (button) {
+      button.addEventListener("click", function () {
+        price = button.getAttribute("data-price");
+        var preset = PRICE_PRESETS[price];
+        if (preset) {
+          els.rate.value = String(preset.median);
+          priceHint.textContent = price + " 元歷年 " + preset.n + " 款，中獎率 " + preset.min.toFixed(2) + "% 到 " + preset.max.toFixed(2) + "%，已填入中位數 " + preset.median.toFixed(2) + "%。可以自己改。";
+          ticketSelect.value = "";
+          renderOfficial(null);
+          toast("面額 $" + price + "：中獎率先用 " + preset.median.toFixed(2) + "%。");
+        } else {
+          priceHint.textContent = "選面額會帶入該面額歷年的典型中獎率，下面的款式清單也只剩這個面額。";
+        }
+        fillTicketOptions(ticketSearch.value);
         render();
       });
     });

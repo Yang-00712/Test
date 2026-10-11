@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 刮刮樂公式試算（命令列版）。
 // 來源：https://www.threads.com/@paulchu0258/post/DeV5aAamdix
-// 用法：node scratch.mjs 034391-055 --rate 30 [--step 0.033] [--count 30] [--max 99] [--min 0] [--split 222|111111] [--ticket 名稱或期別]
+// 用法：node scratch.mjs 034391-055 --rate 30 [--step 0.033] [--count 30] [--max 99] [--min 0] [--split 222|111111] [--ticket 名稱或期別] [--price 100|200|300|500|1000|2000]
 // --ticket 會從同目錄的 tickets.json（台彩公告的本期整體中獎率）帶入中獎率。
 // 加總 100 以上：加總 × (中獎率 + step × k)；加總小於 100：加總 × (1 + 中獎率 × k)。
 import { parseArgs } from "node:util";
@@ -95,6 +95,16 @@ function printStructure(t) {
   console.log("");
 }
 
+// 各面額歷年（2014–2026，台彩公告）中獎率的款數、最低、中位、最高。
+const PRICE_PRESETS = {
+  100: { n: 202, min: 22.12, median: 33.0, max: 100.0 },
+  200: { n: 343, min: 24.03, median: 32.0, max: 50.35 },
+  300: { n: 56, min: 31.0, median: 36.0, max: 40.15 },
+  500: { n: 81, min: 31.43, median: 41.0, max: 100.0 },
+  1000: { n: 29, min: 43.97, median: 70.0, max: 70.79 },
+  2000: { n: 14, min: 69.33, median: 69.33, max: 82.55 },
+};
+
 function usage(message) {
   if (message) {
     console.error(message);
@@ -117,6 +127,7 @@ function main() {
       min: { type: "string", default: "0" },
       split: { type: "string", default: "222" },
       ticket: { type: "string", short: "t" },
+      price: { type: "string", short: "p" },
     },
   });
   const serial = positionals[0];
@@ -128,6 +139,16 @@ function main() {
     usage("彩券編號至少要有 6 位數字，--split 只能是 222 或 111111。");
   }
   let rateText = values.rate;
+  if (values.price && rateText === undefined && !values.ticket) {
+    const preset = PRICE_PRESETS[values.price];
+    if (!preset) {
+      usage("--price 只能是 100、200、300、500、1000 或 2000。");
+    }
+    rateText = String(preset.median);
+    console.log(
+      `面額 $${values.price}：歷年 ${preset.n} 款，中獎率 ${preset.min}% 到 ${preset.max}%，先用中位數 ${preset.median}%`,
+    );
+  }
   if (values.ticket) {
     const found = findTicket(values.ticket);
     if (!found) {
