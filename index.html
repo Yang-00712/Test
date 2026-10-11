@@ -1,4 +1,19 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>刮刮樂公式試算</title>
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#c41c6b" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1322" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="刮刮樂公式">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
 <style>
@@ -60,6 +75,44 @@
     color-scheme: dark;
   }
 
+  html, body { margin: 0; }
+  html {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--bg);
+  }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+  .install {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    max-width: 648px;
+    margin: 0 auto;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--fg);
+    color: var(--bg);
+    font-size: 14px;
+    line-height: 1.4;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    z-index: 10;
+  }
+  .install span { flex: 1; min-width: 0; }
+  .install button {
+    font: 500 14px var(--body);
+    border: 0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+  .install .go { background: var(--accent); color: var(--accent-fg); }
+  .install .close { background: transparent; color: var(--bg); font-size: 18px; padding: 4px 8px; }
+  .install button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   body {
     background: var(--bg);
     color: var(--fg);
@@ -311,7 +364,8 @@
     .cell { transition: background-color 120ms ease, color 120ms ease; }
   }
 </style>
-
+</head>
+<body>
 <main class="wrap">
   <header>
     <p class="eyebrow">Threads 貼文 <a href="https://www.threads.com/@paulchu0258/post/DeV5aAamdix">@paulchu0258</a> 的「刮刮樂公式」</p>
@@ -419,6 +473,12 @@ DX（中獎率 +N)=中獎號碼</blockquote>
     <p class="note">中獎率是整款彩券的平均比例，和一本裡哪一張會中沒有關係。這個頁面只是把貼文的算式寫成程式讓你試玩，沒有任何預測效力。</p>
   </section>
 </main>
+
+<div class="install" id="install" hidden>
+  <span id="install-text"></span>
+  <button type="button" class="go" id="install-go" hidden>安裝</button>
+  <button type="button" class="close" id="install-close" aria-label="關閉">×</button>
+</div>
 
 <script>
   (function () {
@@ -544,5 +604,49 @@ DX（中獎率 +N)=中獎號碼</blockquote>
 
     Object.keys(els).forEach(function (key) { els[key].addEventListener("input", render); });
     render();
+
+    // PWA：註冊 service worker，並在可安裝時顯示提示。
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("sw.js").catch(function () { /* offline support unavailable */ });
+      });
+    }
+    var banner = byId("install");
+    var bannerText = byId("install-text");
+    var goBtn = byId("install-go");
+    var closeBtn = byId("install-close");
+    var DISMISS_KEY = "scratch-install-dismissed";
+    var standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    var dismissed = false;
+    try { dismissed = localStorage.getItem(DISMISS_KEY) === "1"; } catch (error) { /* ignore */ }
+    var deferredPrompt = null;
+
+    function showBanner(text, withButton) {
+      if (standalone || dismissed) { return; }
+      bannerText.textContent = text;
+      goBtn.hidden = !withButton;
+      banner.hidden = false;
+    }
+    window.addEventListener("beforeinstallprompt", function (event) {
+      event.preventDefault();
+      deferredPrompt = event;
+      showBanner("把這個頁面裝到主畫面，離線也能算。", true);
+    });
+    goBtn.addEventListener("click", function () {
+      if (!deferredPrompt) { return; }
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function () { deferredPrompt = null; banner.hidden = true; });
+    });
+    closeBtn.addEventListener("click", function () {
+      banner.hidden = true;
+      try { localStorage.setItem(DISMISS_KEY, "1"); } catch (error) { /* ignore */ }
+    });
+    window.addEventListener("appinstalled", function () { banner.hidden = true; });
+    var isIos = /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIos && !standalone) {
+      showBanner("用 Safari 的「分享」→「加入主畫面」就能當 App 開。", false);
+    }
   })();
 </script>
+</body>
+</html>
