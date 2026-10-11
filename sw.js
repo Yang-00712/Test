@@ -1,4 +1,4 @@
-const CACHE = "scratch-lottery-v12";
+const CACHE = "scratch-lottery-v13";
 const SHELL = [
   "./index.html",
   "./manifest.json",
