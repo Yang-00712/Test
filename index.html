@@ -228,8 +228,9 @@
               <input id="serial" type="text" inputmode="numeric" autocomplete="off" placeholder="034391-055" value="034391-055">
               <small>整串照著打就好，中間的橫線可以不打。</small>
               <div class="examples">
-                <button type="button" class="button small light" data-serial="034391-055" data-rate="30">範例：嗨刮123</button>
-                <button type="button" class="button small light" data-serial="014129-092" data-rate="30">範例：錢進888</button>
+                <button type="button" class="button small light" data-serial="034391-055" data-rate="30" data-price="100">範例：嗨刮123</button>
+                <button type="button" class="button small light" data-serial="014129-092" data-rate="30" data-price="100">範例：錢進888</button>
+                <button type="button" class="button small light" data-serial="017597-016" data-rate="70" data-price="1000">範例：大麻將</button>
               </div>
             </div>
             <div class="field">
@@ -812,12 +813,12 @@
         els.max.value = "99";
         els.min.value = "0";
         split = "222";
-        price = "100";
+        price = button.getAttribute("data-price") || "100";
         ticketSelect.value = "";
         renderOfficial(null);
         fillTicketOptions(ticketSearch.value);
         render();
-        toast("已套原作者的參數（手動、0.033、30 組），結果和貼文一樣。");
+        toast(price === "1000" ? "大麻將 $1000、中獎率 70%，套原作者參數看看會怎樣。" : "已套原作者的參數（手動、0.033、30 組），結果和貼文一樣。");
       });
     });
     Array.prototype.forEach.call(document.querySelectorAll("#mode .segment"), function (button) {
