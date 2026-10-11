@@ -1,13 +1,13 @@
 {
-  "name": "刮刮樂公式試算",
+  "name": "刮刮樂公式",
   "short_name": "刮刮樂公式",
   "lang": "zh-Hant-TW",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#fbf6e6",
-  "theme_color": "#c41c6b",
+  "background_color": "#f4f6f3",
+  "theme_color": "#163f3b",
   "icons": [
     {
       "src": "icons/icon-192.png",
