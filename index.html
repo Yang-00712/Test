@@ -91,6 +91,7 @@
   .button.light { background: var(--paper); border: 1px solid var(--line); }
   input[type=text], input[type=number] { width: 100%; background: var(--paper); border: 1px solid var(--control-border); color: var(--ink); border-radius: 10px; padding: 11px 12px; min-height: 46px; font-size: 16px; font-variant-numeric: tabular-nums; }
   input::placeholder { color: var(--placeholder); }
+  input:disabled { background: var(--control-raised); color: var(--muted); border-color: transparent; }
   select { width: 100%; background: var(--paper); border: 1px solid var(--control-border); color: var(--ink); border-radius: 10px; padding: 11px 12px; min-height: 46px; font-size: 16px; font-variant-numeric: tabular-nums; }
   select:focus { outline: 2px solid var(--focus-ring-field); outline-offset: 1px; }
   .ticket-pick { display: grid; gap: 8px; }
@@ -243,6 +244,14 @@
               <label for="rate">背面印的中獎率（%）</label>
               <input id="rate" type="number" inputmode="decimal" min="0" max="100" step="0.1" value="30">
               <small>翻到彩券背面找「中獎率」，例如 30。</small>
+            </div>
+            <div class="field">
+              <span id="mode-label">怎麼套公式</span>
+              <div class="segmented" role="group" aria-labelledby="mode-label" id="mode">
+                <button type="button" class="segment active" data-mode="auto">自動</button>
+                <button type="button" class="segment" data-mode="manual">手動</button>
+              </div>
+              <small id="mode-hint"></small>
             </div>
           </div>
           <details class="advanced">
@@ -429,6 +438,8 @@
       "2000": { n: 14, min: 69.33, median: 69.33, max: 82.55 }
     };
     var price = "";
+    var mode = "auto";
+    var manualMemo = { step: "0.033", count: "30" };
 
     function load(key, fallback) {
       try { var v = JSON.parse(localStorage.getItem(key) || "null"); return v === null ? fallback : v; } catch (error) { return fallback; }
@@ -446,6 +457,8 @@
       }
       if (SPLITS[saved.split]) { split = saved.split; }
       if (PRICE_PRESETS[saved.price]) { price = saved.price; }
+      if (saved.mode === "auto" || saved.mode === "manual") { mode = saved.mode; }
+      if (saved.manualMemo && saved.manualMemo.step !== undefined) { manualMemo = saved.manualMemo; }
     }
 
     var toastTimer = null;
@@ -505,6 +518,30 @@
       current = null;
     }
 
+    var modeHint = byId("mode-hint");
+    var stepAutoBtn = byId("step-auto");
+    function syncMode() {
+      Array.prototype.forEach.call(document.querySelectorAll("#mode .segment"), function (button) {
+        button.classList.toggle("active", button.getAttribute("data-mode") === mode);
+      });
+      var auto = mode === "auto";
+      els.step.disabled = auto;
+      els.count.disabled = auto;
+      stepAutoBtn.hidden = auto;
+      if (auto) {
+        var ratePct = Number(els.rate.value);
+        var bookSize = Math.max(1, Math.floor(Number(els.max.value) || 0) + 1);
+        if (isFinite(ratePct) && els.rate.value !== "") {
+          els.step.value = String(Math.round(ratePct) / 1000);
+          els.count.value = String(Math.max(1, Math.min(200, Math.round(ratePct / 100 * bookSize))));
+          modeHint.textContent = "自動：加成 " + els.step.value + " = 中獎率 " + ratePct + "% ÷ 10；組數 " + els.count.value + " = " + ratePct + "% × 一本 " + bookSize + " 張。公式一或二依加總自動選。";
+        } else {
+          modeHint.textContent = "自動：填好中獎率後，加成和組數會自己推。";
+        }
+      } else {
+        modeHint.textContent = "手動：用進階裡的加成和組數，預設是原作者的 0.033 和 30 組。";
+      }
+    }
     function syncPriceButtons() {
       Array.prototype.forEach.call(document.querySelectorAll("#price .segment"), function (button) {
         button.classList.toggle("active", button.getAttribute("data-price") === price);
@@ -517,9 +554,10 @@
     }
 
     function render() {
-      store(KEY, { serial: els.serial.value, rate: els.rate.value, step: els.step.value, count: els.count.value, max: els.max.value, min: els.min.value, split: split, price: price });
+      store(KEY, { serial: els.serial.value, rate: els.rate.value, step: els.step.value, count: els.count.value, max: els.max.value, min: els.min.value, split: split, price: price, mode: mode, manualMemo: manualMemo });
       syncSplitButtons();
       syncPriceButtons();
+      syncMode();
 
       var ticket = parseSerial(els.serial.value, split);
       var rate = Number(els.rate.value) / 100;
@@ -735,7 +773,29 @@
       button.addEventListener("click", function () {
         els.serial.value = button.getAttribute("data-serial");
         els.rate.value = button.getAttribute("data-rate");
+        mode = "manual";
+        els.step.value = "0.033";
+        els.count.value = "30";
+        els.max.value = "99";
+        els.min.value = "0";
+        split = "222";
+        price = "100";
+        ticketSelect.value = "";
+        renderOfficial(null);
+        fillTicketOptions(ticketSearch.value);
         render();
+        toast("已套原作者的參數（手動、0.033、30 組），結果和貼文一樣。");
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("#mode .segment"), function (button) {
+      button.addEventListener("click", function () {
+        var next = button.getAttribute("data-mode");
+        if (next === mode) { return; }
+        if (next === "auto") { manualMemo = { step: els.step.value, count: els.count.value }; }
+        else { els.step.value = manualMemo.step; els.count.value = manualMemo.count; }
+        mode = next;
+        render();
+        toast(mode === "auto" ? "自動：加成和組數照中獎率推。" : "手動：可以自己改加成和組數。");
       });
     });
     var priceHint = byId("price-hint");

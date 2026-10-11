@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // 刮刮樂公式試算（命令列版）。
 // 來源：https://www.threads.com/@paulchu0258/post/DeV5aAamdix
-// 用法：node scratch.mjs 034391-055 --rate 30 [--step 0.033] [--count 30] [--max 99] [--min 0] [--split 222|111111] [--ticket 名稱或期別] [--price 100|200|300|500|1000|2000]
+// 用法：node scratch.mjs 034391-055 --rate 30 [--step 0.033] [--count 30] [--max 99] [--min 0] [--split 222|111111] [--ticket 名稱或期別] [--price 100|200|300|500|1000|2000] [--auto]
+// --auto：加成 = 中獎率 ÷ 10，組數 = 中獎率 × 一本張數（原作者的規則）。
 // --ticket 會從同目錄的 tickets.json（台彩公告的本期整體中獎率）帶入中獎率。
 // 加總 100 以上：加總 × (中獎率 + step × k)；加總小於 100：加總 × (1 + 中獎率 × k)。
 import { parseArgs } from "node:util";
@@ -128,6 +129,7 @@ function main() {
       split: { type: "string", default: "222" },
       ticket: { type: "string", short: "t" },
       price: { type: "string", short: "p" },
+      auto: { type: "boolean", short: "a", default: false },
     },
   });
   const serial = positionals[0];
@@ -164,9 +166,18 @@ function main() {
     usage("缺少 --rate（彩券背面印的中獎率，百分比），或用 --ticket 選款式。");
   }
   const rate = Number(rateText) / 100;
-  const step = Number(values.step);
-  const count = Math.max(1, Math.floor(Number(values.count)));
   const max = Math.max(0, Math.floor(Number(values.max)));
+  const step = values.auto
+    ? Math.round(rate * 100) / 1000
+    : Number(values.step);
+  const count = values.auto
+    ? Math.max(1, Math.round(rate * (max + 1)))
+    : Math.max(1, Math.floor(Number(values.count)));
+  if (values.auto) {
+    console.log(
+      `自動：加成 ${step} = 中獎率 ${Math.round(rate * 10000) / 100}% ÷ 10，組數 ${count} = 中獎率 × 一本 ${max + 1} 張`,
+    );
+  }
   const min = Math.max(0, Math.min(max, Math.floor(Number(values.min))));
   if (![rate, step, count, max, min].every(Number.isFinite)) {
     usage("--rate、--step、--count、--max、--min 都要是數字。");
