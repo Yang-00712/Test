@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // 刮刮樂公式試算（命令列版）。
 // 來源：https://www.threads.com/@paulchu0258/post/DeV5aAamdix
-// 用法：node scratch.mjs 034391-055 --rate 30 [--step 0.033] [--count 30] [--max 99]
+// 用法：node scratch.mjs 034391-055 --rate 30 [--step 0.033] [--count 30] [--max 99] [--min 0]
+// 加總 100 以上：加總 × (中獎率 + step × k)；加總小於 100：加總 × (1 + 中獎率 × k)。
 import { parseArgs } from "node:util";
 
 const round6 = (value) => Math.round(value * 1e6) / 1e6;
@@ -23,18 +24,28 @@ export function parseSerial(raw) {
   return { book, index, a, b, c, d: a + b + c };
 }
 
-/** 依 D × (p + s × k) 產生 k = 1..count 的候選票號。 */
-export function candidates({ d, rate, step = 0.033, count = 30, max = 99 }) {
+/** 依 D 決定底數與每組加成，產生 k = 1..count 的候選票號。 */
+export function candidates({
+  d,
+  rate,
+  step = 0.033,
+  count = 30,
+  max = 99,
+  min = 0,
+}) {
+  const second = d < 100;
+  const base = second ? 1 : rate;
+  const stepUsed = second ? rate : step;
   const rows = [];
   for (let k = 1; k <= count; k += 1) {
-    const multiplier = round6(rate + step * k);
+    const multiplier = round6(base + stepUsed * k);
     const value = round6(d * multiplier);
     const low = Math.floor(value);
     const high = Math.ceil(value);
-    const picks = [...new Set([low, high])].filter((n) => n >= 0 && n <= max);
+    const picks = [...new Set([low, high])].filter((n) => n >= min && n <= max);
     rows.push({ k, multiplier, value, picks });
   }
-  return rows;
+  return { second, base, stepUsed, rows };
 }
 
 function usage(message) {
@@ -56,6 +67,7 @@ function main() {
       step: { type: "string", short: "s", default: "0.033" },
       count: { type: "string", short: "n", default: "30" },
       max: { type: "string", short: "m", default: "99" },
+      min: { type: "string", default: "0" },
     },
   });
   const serial = positionals[0];
@@ -73,12 +85,20 @@ function main() {
   const step = Number(values.step);
   const count = Math.max(1, Math.floor(Number(values.count)));
   const max = Math.max(0, Math.floor(Number(values.max)));
-  if (![rate, step, count, max].every(Number.isFinite)) {
-    usage("--rate、--step、--count、--max 都要是數字。");
+  const min = Math.max(0, Math.min(max, Math.floor(Number(values.min))));
+  if (![rate, step, count, max, min].every(Number.isFinite)) {
+    usage("--rate、--step、--count、--max、--min 都要是數字。");
   }
 
-  const rows = candidates({ d: ticket.d, rate, step, count, max });
-  const featured = rows[Math.min(3, count) - 1];
+  const { second, base, stepUsed, rows } = candidates({
+    d: ticket.d,
+    rate,
+    step,
+    count,
+    max,
+    min,
+  });
+  const featured = rows[Math.min(second ? 1 : 3, count) - 1];
   const all = [...new Set(rows.flatMap((row) => row.picks))].sort(
     (x, y) => x - y,
   );
@@ -93,17 +113,24 @@ function main() {
   console.log(
     `A + B + C = D → ${pad2(ticket.a)} + ${pad2(ticket.b)} + ${pad2(ticket.c)} = ${ticket.d}`,
   );
-  console.log(`D × (p + s × k)，p = ${plain(rate)}，s = ${plain(step)}`);
   console.log(
-    `k = ${featured.k}：${ticket.d} × (${plain(rate)} + ${plain(step)} × ${featured.k}) = ${ticket.d} × ${plain(featured.multiplier)} = ${featured.value.toFixed(3)} → 選 ${featured.picks.map(pad2).join(" 或 ") || "（超出票號範圍）"}`,
+    second
+      ? `D = ${ticket.d} 小於 100，用公式二：D × (1 + p × k)，p = ${plain(rate)}`
+      : `D = ${ticket.d} 有 100 以上，用公式一：D × (p + s × k)，p = ${plain(rate)}，s = ${plain(step)}`,
   );
+  console.log(
+    `k = ${featured.k}：${ticket.d} × (${plain(base)} + ${plain(stepUsed)} × ${featured.k}) = ${ticket.d} × ${plain(featured.multiplier)} = ${featured.value.toFixed(3)} → 選 ${featured.picks.map(pad2).join(" 或 ") || "（不在可選範圍）"}`,
+  );
+  if (min > 0) {
+    console.log(`${pad2(min)} 號以前當作已賣掉，不列入。`);
+  }
   console.log("");
-  console.log("  k   p + s×k   D × (p + s×k)   候選票號");
+  console.log("  k   底數+加成   D × (底數+加成)   候選票號");
   for (const row of rows) {
     const picks =
       row.picks.length > 0
         ? row.picks.map(pad2).join(" / ")
-        : `超出 00–${pad2(max)}`;
+        : `不在 ${pad2(min)}–${pad2(max)}`;
     console.log(
       `${String(row.k).padStart(3)}   ${plain(row.multiplier).padEnd(8)}  ${row.value.toFixed(3).padStart(13)}   ${picks}`,
     );
@@ -113,7 +140,7 @@ function main() {
     `候選票號（k = 1…${count}，共 ${all.length} 個）：${all.map(pad2).join(" ") || "無"}`,
   );
   console.log(
-    `落在 00–${pad2(max)} 範圍內的 k：${inRange} 個，超出範圍：${count - inRange} 個`,
+    `落在 ${pad2(min)}–${pad2(max)} 範圍內的 k：${inRange} 個，不在範圍：${count - inRange} 個`,
   );
   if (ticket.index !== null) {
     console.log(
