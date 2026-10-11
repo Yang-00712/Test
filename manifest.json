@@ -2,7 +2,7 @@
   "name": "刮刮樂公式試算",
   "short_name": "刮刮樂公式",
   "lang": "zh-Hant-TW",
-  "start_url": "./",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
