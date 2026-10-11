@@ -46,6 +46,7 @@
     --notice-error-border: #efd7d1;
     --notice-error-ink: #923f37;
     --on-deep-muted: #d0e2d9;
+    --toast: #1d4039;
     --shadow-dock: 0 5px 24px #18352d38;
     --ring-selected: 0 0 0 1px #17695e;
     --font-sans: system-ui, -apple-system, "Segoe UI", "Microsoft JhengHei", sans-serif;
@@ -238,7 +239,6 @@
                 <button type="button" class="segment" data-price="2000">$2000</button>
                 <button type="button" class="segment active" data-price="">不限</button>
               </div>
-              <div class="tags" id="price-apply"></div>
               <small id="price-hint"></small>
             </div>
             <div class="field">
@@ -253,6 +253,16 @@
               <label for="rate">背面印的中獎率（%）</label>
               <input id="rate" type="text" inputmode="decimal" autocomplete="off" value="30">
               <small>彩券背面有印。</small>
+            </div>
+            <div class="field">
+              <label for="profit">賺錢率（%）</label>
+              <input id="profit" type="text" inputmode="decimal" autocomplete="off" value="">
+              <div class="tags" id="profit-apply">
+                <button type="button" class="button small light" data-div="1">套用</button>
+                <button type="button" class="button small light" data-div="100">÷100</button>
+                <button type="button" class="button small light" data-div="1000">÷1000</button>
+              </div>
+              <small>按了會填進上面的中獎率。</small>
             </div>
             <div class="field">
               <span id="mode-label">怎麼套公式</span>
@@ -362,7 +372,6 @@
               <div><strong id="o-profit"></strong><span>賺錢率（比票價多）</span></div>
               <div><strong id="o-ev"></strong><span id="o-ev-note">每張期望值</span></div>
             </div>
-            <div class="tags" id="o-apply" style="margin: -6px 0 16px"></div>
             <div class="table-scroll">
               <table class="data-table">
                 <thead><tr><th>獎項</th><th>張數</th><th>機率</th><th>每幾張有一張</th></tr></thead>
@@ -446,7 +455,7 @@
 <script>
   (function () {
     var byId = function (id) { return document.getElementById(id); };
-    var els = { serial: byId("serial"), rate: byId("rate"), step: byId("step"), count: byId("count"), max: byId("max"), min: byId("min") };
+    var els = { serial: byId("serial"), rate: byId("rate"), step: byId("step"), count: byId("count"), max: byId("max"), min: byId("min"), profit: byId("profit") };
     var out = {
       error: byId("error"), result: byId("result"), leadPicks: byId("lead-picks"), leadNote: byId("lead-note"), leadValue: byId("lead-value"),
       steps: byId("steps"), picks: byId("picks"), summary: byId("summary"), book: byId("book"), tbody: byId("tbody"),
@@ -583,7 +592,7 @@
     }
 
     function render() {
-      store(KEY, { serial: els.serial.value, rate: els.rate.value, step: els.step.value, count: els.count.value, max: els.max.value, min: els.min.value, split: split, price: price, mode: mode, manualMemo: manualMemo });
+      store(KEY, { serial: els.serial.value, rate: els.rate.value, profit: els.profit.value, step: els.step.value, count: els.count.value, max: els.max.value, min: els.min.value, split: split, price: price, mode: mode, manualMemo: manualMemo });
       syncSplitButtons();
       syncPriceButtons();
       syncMode();
@@ -722,7 +731,8 @@
       }
     });
 
-    Object.keys(els).forEach(function (key) { els[key].addEventListener("input", render); });
+    Object.keys(els).forEach(function (key) { if (key !== "profit") { els[key].addEventListener("input", render); } });
+    els.profit.addEventListener("input", function () { try { var saved = load(KEY, {}) || {}; saved.profit = els.profit.value; store(KEY, saved); } catch (error) { /* ignore */ } });
     // 彩券款式：台彩公告的本期整體中獎率（tickets.json）
     var TICKETS = [];
     var ticketSelect = byId("ticket");
@@ -775,10 +785,9 @@
         return "<tr" + (row[0] === t.tiers[0][0] ? ' class="featured"' : "") + '><td>' + escapeHtml(label) + '</td><td class="num">' + fmtInt(row[1]) + '</td><td class="num">' + fmtPct(p) + '</td><td class="num">1 : ' + fmtInt(Math.round(issued / row[1])) + "</td></tr>";
       }).join("");
       oEls.note.textContent = "發行 " + fmtInt(issued) + " 張，中獎 " + fmtInt(winners) + " 張。";
-      applyChips(byId("o-apply"), t.rate, profitWinners / issued * 100);
+      els.profit.value = String(Math.round(profitWinners / issued * 10000) / 100);
       oEls.empty.hidden = true; oEls.body.hidden = false;
     }
-    bindApply(byId("o-apply"));
     function applyTicket(vol) {
       var t = null;
       TICKETS.forEach(function (x) { if (x.vol === vol) { t = x; } });
@@ -807,37 +816,27 @@
       });
     });
     var priceHint = byId("price-hint");
-    var priceApply = byId("price-apply");
-    function applyChips(container, rateValue, profitValue) {
-      var opts = [["中獎率 " + rateValue.toFixed(2), rateValue], ["賺錢率 " + profitValue.toFixed(2), profitValue], ["÷100 " + (profitValue / 100).toFixed(4), profitValue / 100], ["÷1000 " + (profitValue / 1000).toFixed(5), profitValue / 1000]];
-      container.innerHTML = opts.map(function (o) {
-        return '<button type="button" class="button small light" data-apply="' + o[1] + '">' + escapeHtml(o[0]) + "</button>";
-      }).join("");
-    }
-    function bindApply(container) {
-      container.addEventListener("click", function (event) {
-        var button = event.target.closest("[data-apply]");
-        if (!button) { return; }
-        els.rate.value = String(Math.round(Number(button.getAttribute("data-apply")) * 100000) / 100000);
-        render();
-      });
-    }
-    bindApply(priceApply);
-    if (PRICE_PRESETS[price]) { applyChips(priceApply, PRICE_PRESETS[price].median, PRICE_PRESETS[price].profit); }
+    byId("profit-apply").addEventListener("click", function (event) {
+      var button = event.target.closest("[data-div]");
+      if (!button) { return; }
+      var value = Number(els.profit.value);
+      if (els.profit.value === "" || !isFinite(value)) { toast("先填賺錢率。"); return; }
+      els.rate.value = String(Math.round(value / Number(button.getAttribute("data-div")) * 100000) / 100000);
+      render();
+    });
     Array.prototype.forEach.call(document.querySelectorAll("#price .segment"), function (button) {
       button.addEventListener("click", function () {
         price = button.getAttribute("data-price");
         var preset = PRICE_PRESETS[price];
         if (preset) {
           els.rate.value = String(preset.median);
-          applyChips(priceApply, preset.median, preset.profit);
+          els.profit.value = String(preset.profit);
           priceHint.textContent = preset.n + " 款，中獎率 " + preset.min.toFixed(2) + "% 到 " + preset.max.toFixed(2) + "%。";
           ticketSelect.value = "";
           renderOfficial(null);
           toast("面額 $" + price + "：中獎率先用 " + preset.median.toFixed(2) + "%。");
         } else {
           priceHint.textContent = "";
-          priceApply.innerHTML = "";
         }
         fillTicketOptions(ticketSearch.value);
         render();
@@ -859,13 +858,13 @@
     var keypad = byId("keypad");
     var kpTitle = byId("kp-title");
     var kpPreview = byId("kp-preview");
-    var KEYPAD_FIELDS = { serial: "彩券號碼", rate: "中獎率（%）", step: "每一組加多少", count: "要算幾組", max: "一本最後一張", min: "剩下的最小號碼" };
+    var KEYPAD_FIELDS = { serial: "彩券號碼", rate: "中獎率（%）", profit: "賺錢率（%）", step: "每一組加多少", count: "要算幾組", max: "一本最後一張", min: "剩下的最小號碼" };
     var coarse = window.matchMedia("(pointer: coarse)").matches;
     var activeField = null;
     function keypadAllowed(key) {
       if (!activeField) { return false; }
       if (key === "-") { return activeField === els.serial; }
-      if (key === ".") { return activeField === els.rate || activeField === els.step; }
+      if (key === ".") { return activeField === els.rate || activeField === els.profit || activeField === els.step; }
       return true;
     }
     function openKeypad(input) {
