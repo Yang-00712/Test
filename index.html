@@ -261,6 +261,12 @@
                 <button type="button" class="button small light" data-div="1">套用</button>
                 <button type="button" class="button small light" data-div="100">÷100</button>
                 <button type="button" class="button small light" data-div="1000">÷1000</button>
+                <button type="button" class="button small light" data-div="3.14159265">÷π</button>
+              </div>
+              <div class="tags" style="align-items: center">
+                <span style="font-size: 12px; color: #64786b">÷</span>
+                <input id="divisor" type="text" inputmode="decimal" autocomplete="off" placeholder="自己填" style="width: 110px; min-height: 40px; padding: 7px 10px">
+                <button type="button" class="button small light" id="divisor-apply">套用</button>
               </div>
               <small>按了會填進上面的中獎率。</small>
             </div>
@@ -816,6 +822,14 @@
       });
     });
     var priceHint = byId("price-hint");
+    byId("divisor-apply").addEventListener("click", function () {
+      var value = Number(els.profit.value);
+      var divisor = Number(byId("divisor").value);
+      if (els.profit.value === "" || !isFinite(value)) { toast("先填賺錢率。"); return; }
+      if (byId("divisor").value === "" || !isFinite(divisor) || divisor === 0) { toast("填一個不是 0 的數。"); return; }
+      els.rate.value = String(Math.round(value / divisor * 100000) / 100000);
+      render();
+    });
     byId("profit-apply").addEventListener("click", function (event) {
       var button = event.target.closest("[data-div]");
       if (!button) { return; }
@@ -858,13 +872,13 @@
     var keypad = byId("keypad");
     var kpTitle = byId("kp-title");
     var kpPreview = byId("kp-preview");
-    var KEYPAD_FIELDS = { serial: "彩券號碼", rate: "中獎率（%）", profit: "賺錢率（%）", step: "每一組加多少", count: "要算幾組", max: "一本最後一張", min: "剩下的最小號碼" };
+    var KEYPAD_FIELDS = { serial: "彩券號碼", rate: "中獎率（%）", profit: "賺錢率（%）", divisor: "除以", step: "每一組加多少", count: "要算幾組", max: "一本最後一張", min: "剩下的最小號碼" };
     var coarse = window.matchMedia("(pointer: coarse)").matches;
     var activeField = null;
     function keypadAllowed(key) {
       if (!activeField) { return false; }
       if (key === "-") { return activeField === els.serial; }
-      if (key === ".") { return activeField === els.rate || activeField === els.profit || activeField === els.step; }
+      if (key === ".") { return activeField === els.rate || activeField === els.profit || activeField === els.step || activeField.id === "divisor"; }
       return true;
     }
     function openKeypad(input) {
@@ -882,7 +896,7 @@
       activeField = null;
     }
     Object.keys(KEYPAD_FIELDS).forEach(function (id) {
-      var input = els[id];
+      var input = els[id] || byId(id);
       if (!input) { return; }
       if (coarse) { input.setAttribute("inputmode", "none"); }
       input.addEventListener("focus", function () { if (coarse) { openKeypad(input); } });
