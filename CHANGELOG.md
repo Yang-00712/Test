@@ -1,5 +1,41 @@
 # Changelog
 
+## [6.4.0](https://github.com/Yang-00712/Test/compare/rea-agents-6.3.0...rea-agents-6.4.0) (2026-10-11)
+
+
+### Features
+
+* add pwa ([03ee96f](https://github.com/Yang-00712/Test/commit/03ee96f80defe2ebc4292d0f09c58b5faee641c4))
+* add scratch-lottery ([fd6aa8f](https://github.com/Yang-00712/Test/commit/fd6aa8f1d1372aeff32193ba9167945ceac77716))
+* apply official rates, trim copy ([18b8130](https://github.com/Yang-00712/Test/commit/18b81308d8a54b05c738a0732c1ef3262838914e))
+* auto mode ([19e52a3](https://github.com/Yang-00712/Test/commit/19e52a389fa16515e3af1c45ccc5d49963e0c910))
+* cli digit sum split ([a169966](https://github.com/Yang-00712/Test/commit/a169966952bf973b18a87133c56f0a4ec446cde6))
+* cli split option ([8d3571b](https://github.com/Yang-00712/Test/commit/8d3571b1687ee0ff7df51c78e4c09530b11dbab3))
+* custom divisor ([203f54f](https://github.com/Yang-00712/Test/commit/203f54f7a8f5ab84b96294a089b5bb7c45cbd010))
+* digit sum split ([3606900](https://github.com/Yang-00712/Test/commit/3606900e86918572826c76baa255d7787724690a))
+* editable profit rate with divide buttons; fix toast colour ([f18cc63](https://github.com/Yang-00712/Test/commit/f18cc635d456aff0c8212827b51bb26e984ed56d))
+* in-app numeric keypad ([b3bd92e](https://github.com/Yang-00712/Test/commit/b3bd92e784044e46fb20b9f6e7f4d4bd7a93a683))
+* move scratch-lottery to root ([3b7755d](https://github.com/Yang-00712/Test/commit/3b7755d310cb0694ed30c0195761b81bd6bee813))
+* official prize structure and odds ([1895a7d](https://github.com/Yang-00712/Test/commit/1895a7d9ea65ad985628ebc54311ec310d715ad2))
+* price presets ([1e92c4c](https://github.com/Yang-00712/Test/commit/1e92c4c17cfa34dae8df1ce6e8df66b93503ae78))
+* profit-rate presets per price ([977d5f0](https://github.com/Yang-00712/Test/commit/977d5f018c988ee9c654b9c2c31ea2fd588524c9))
+* restyle ([49ce48a](https://github.com/Yang-00712/Test/commit/49ce48ad3930ad578b8b3c8d1eb79c7bce326757))
+* second formula ([bb231af](https://github.com/Yang-00712/Test/commit/bb231af8937239029ed6ad25551070fc63cabde8))
+* step from rate ([44e411a](https://github.com/Yang-00712/Test/commit/44e411aa511a7d127ad744b33de088a9bddac78b))
+* third example ([04398db](https://github.com/Yang-00712/Test/commit/04398db0e8abb4632300444e32e50ebae621be92))
+* ticket picker with official win rates ([cada586](https://github.com/Yang-00712/Test/commit/cada586d1d36dbf1b204eba9a7d2be34f87f88a5))
+* wallet, auto update, split option ([c9fea52](https://github.com/Yang-00712/Test/commit/c9fea529c68f1c4cc0466c937efef1b70eebbf4d))
+
+
+### Bug Fixes
+
+* book title follows ticket count ([71f5314](https://github.com/Yang-00712/Test/commit/71f5314dbb4ba263e128e74eab9e5fb979f111e3))
+* define splits before reading saved inputs ([37cd218](https://github.com/Yang-00712/Test/commit/37cd218ea933844e8555fa74271d1a7a67b820d5))
+* field label size ([a02dee4](https://github.com/Yang-00712/Test/commit/a02dee4a06031ea1b989b5a8b2b45bd1c32ebc14))
+* pages build ([8cc4d51](https://github.com/Yang-00712/Test/commit/8cc4d5141fd80994b61c7fc1745d65ff88a126a8))
+* plain percent formatting ([8f2f6fa](https://github.com/Yang-00712/Test/commit/8f2f6fa5e06b78013da4b5b85b203a7fefbe4593))
+* pwa manifest path ([384c053](https://github.com/Yang-00712/Test/commit/384c053fb88681e814a8083b30a05e3cdf8e3d4e))
+
 ## [6.3.0](https://github.com/morluto/rea/compare/rea-agents-6.2.0...rea-agents-6.3.0) (2026-10-09)
 
 
