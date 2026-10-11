@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 刮刮樂公式試算（命令列版）。
 // 來源：https://www.threads.com/@paulchu0258/post/DeV5aAamdix
-// 用法：node scratch-lottery/scratch.mjs 034391-055 --rate 30 [--step 0.033] [--count 30] [--max 99]
+// 用法：node scratch.mjs 034391-055 --rate 30 [--step 0.033] [--count 30] [--max 99]
 import { parseArgs } from "node:util";
 
 const round6 = (value) => Math.round(value * 1e6) / 1e6;
@@ -42,9 +42,9 @@ function usage(message) {
     console.error(message);
   }
   console.error(
-    "用法：node scratch-lottery/scratch.mjs <彩券編號> --rate <中獎率%> [--step 0.033] [--count 30] [--max 99]",
+    "用法：node scratch.mjs <彩券編號> --rate <中獎率%> [--step 0.033] [--count 30] [--max 99]",
   );
-  console.error("範例：node scratch-lottery/scratch.mjs 034391-055 --rate 30");
+  console.error("範例：node scratch.mjs 034391-055 --rate 30");
   process.exit(1);
 }
 
