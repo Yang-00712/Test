@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // 刮刮樂公式試算（命令列版）。
 // 來源：https://www.threads.com/@paulchu0258/post/DeV5aAamdix
-// 用法：node scratch.mjs 034391-055 --rate 30 [--step 0.033] [--count 30] [--max 99] [--min 0] [--split 222|111111]
+// 用法：node scratch.mjs 034391-055 --rate 30 [--step 0.033] [--count 30] [--max 99] [--min 0] [--split 222|111111] [--ticket 名稱或期別]
+// --ticket 會從同目錄的 tickets.json（台彩公告的本期整體中獎率）帶入中獎率。
 // 加總 100 以上：加總 × (中獎率 + step × k)；加總小於 100：加總 × (1 + 中獎率 × k)。
 import { parseArgs } from "node:util";
+import { readFileSync } from "node:fs";
 
 const round6 = (value) => Math.round(value * 1e6) / 1e6;
 const pad2 = (n) => String(n).padStart(2, "0");
@@ -54,6 +56,17 @@ export function candidates({
   return { second, base, stepUsed, rows };
 }
 
+/** 用名稱或期別在 tickets.json 裡找一款彩券；同名多期取最新。 */
+export function findTicket(query) {
+  const file = new URL("./tickets.json", import.meta.url);
+  const { tickets } = JSON.parse(readFileSync(file, "utf8"));
+  const q = String(query).trim();
+  const matches = tickets.filter(
+    (t) => t.vol === q || t.name === q || t.name.includes(q),
+  );
+  return matches[0] ?? null;
+}
+
 function usage(message) {
   if (message) {
     console.error(message);
@@ -75,6 +88,7 @@ function main() {
       max: { type: "string", short: "m", default: "99" },
       min: { type: "string", default: "0" },
       split: { type: "string", default: "222" },
+      ticket: { type: "string", short: "t" },
     },
   });
   const serial = positionals[0];
@@ -85,10 +99,21 @@ function main() {
   if (!ticket) {
     usage("彩券編號至少要有 6 位數字，--split 只能是 222 或 111111。");
   }
-  if (values.rate === undefined) {
-    usage("缺少 --rate（彩券背面印的中獎率，百分比）。");
+  let rateText = values.rate;
+  if (values.ticket) {
+    const found = findTicket(values.ticket);
+    if (!found) {
+      usage(`tickets.json 裡找不到「${values.ticket}」。`);
+    }
+    rateText = String(found.rate);
+    console.log(
+      `款式 ${found.vol} ${found.name}（$${found.price}）：台彩公告中獎率 ${found.rate.toFixed(2)}%`,
+    );
   }
-  const rate = Number(values.rate) / 100;
+  if (rateText === undefined) {
+    usage("缺少 --rate（彩券背面印的中獎率，百分比），或用 --ticket 選款式。");
+  }
+  const rate = Number(rateText) / 100;
   const step = Number(values.step);
   const count = Math.max(1, Math.floor(Number(values.count)));
   const max = Math.max(0, Math.floor(Number(values.max)));

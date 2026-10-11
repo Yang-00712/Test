@@ -91,6 +91,9 @@
   .button.light { background: var(--paper); border: 1px solid var(--line); }
   input[type=text], input[type=number] { width: 100%; background: var(--paper); border: 1px solid var(--control-border); color: var(--ink); border-radius: 10px; padding: 11px 12px; min-height: 46px; font-size: 16px; font-variant-numeric: tabular-nums; }
   input::placeholder { color: var(--placeholder); }
+  select { width: 100%; background: var(--paper); border: 1px solid var(--control-border); color: var(--ink); border-radius: 10px; padding: 11px 12px; min-height: 46px; font-size: 16px; font-variant-numeric: tabular-nums; }
+  select:focus { outline: 2px solid var(--focus-ring-field); outline-offset: 1px; }
+  .ticket-pick { display: grid; gap: 8px; }
 
   details.advanced { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 4px; }
   details.advanced summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; font-size: 13px; font-weight: 650; color: var(--teal); cursor: pointer; border-radius: 10px; }
@@ -206,6 +209,14 @@
                 <button type="button" class="button small light" data-serial="034391-055" data-rate="30">範例：嗨刮123</button>
                 <button type="button" class="button small light" data-serial="014129-092" data-rate="30">範例：錢進888</button>
               </div>
+            </div>
+            <div class="field">
+              <label for="ticket-search">哪一款彩券</label>
+              <div class="ticket-pick">
+                <input id="ticket-search" type="text" autocomplete="off" placeholder="輸入名稱或期別找，例如 嗨刮">
+                <select id="ticket" aria-label="彩券款式"><option value="">自己填中獎率</option></select>
+              </div>
+              <small id="ticket-hint">選了會自動填入台彩公告的「本期整體中獎率」。</small>
             </div>
             <div class="field">
               <label for="rate">背面印的中獎率（%）</label>
@@ -584,6 +595,46 @@
     });
 
     Object.keys(els).forEach(function (key) { els[key].addEventListener("input", render); });
+    // 彩券款式：台彩公告的本期整體中獎率（tickets.json）
+    var TICKETS = [];
+    var ticketSelect = byId("ticket");
+    var ticketSearch = byId("ticket-search");
+    var ticketHint = byId("ticket-hint");
+    function fillTicketOptions(filter) {
+      var q = (filter || "").trim().toLowerCase();
+      var groups = {};
+      var order = [];
+      TICKETS.forEach(function (t) {
+        var hay = (t.vol + " " + t.name + " " + t.price).toLowerCase();
+        if (q && hay.indexOf(q) === -1) { return; }
+        var g = t.onSale ? "熱賣中" : t.start.slice(0, 4) + " 年";
+        if (!groups[g]) { groups[g] = []; order.push(g); }
+        groups[g].push(t);
+      });
+      var htmlOut = '<option value="">自己填中獎率</option>';
+      order.forEach(function (g) {
+        htmlOut += '<optgroup label="' + escapeHtml(g) + '">' + groups[g].map(function (t) {
+          return '<option value="' + escapeHtml(t.vol) + '">' + escapeHtml(t.vol + " " + t.name + " $" + t.price + " · " + t.rate.toFixed(2) + "%") + "</option>";
+        }).join("") + "</optgroup>";
+      });
+      ticketSelect.innerHTML = htmlOut;
+      var shown = order.reduce(function (n, g) { return n + groups[g].length; }, 0);
+      ticketHint.textContent = q ? "找到 " + shown + " 款。" : "共 " + TICKETS.length + " 款，資料來自台彩上市公告的「本期整體中獎率」。";
+    }
+    function applyTicket(vol) {
+      var t = null;
+      TICKETS.forEach(function (x) { if (x.vol === vol) { t = x; } });
+      if (!t) { return; }
+      els.rate.value = String(t.rate);
+      render();
+      toast(t.name + "：台彩公告中獎率 " + t.rate.toFixed(2) + "%，已填入。");
+    }
+    ticketSearch.addEventListener("input", function () { fillTicketOptions(ticketSearch.value); });
+    ticketSelect.addEventListener("change", function () { if (ticketSelect.value) { applyTicket(ticketSelect.value); } });
+    fetch("tickets.json").then(function (r) { return r.json(); }).then(function (data) {
+      TICKETS = (data.tickets || []).filter(function (t) { return typeof t.rate === "number"; });
+      fillTicketOptions("");
+    }).catch(function () { ticketHint.textContent = "款式清單暫時讀不到，請直接填中獎率。"; });
     Array.prototype.forEach.call(document.querySelectorAll(".examples button"), function (button) {
       button.addEventListener("click", function () {
         els.serial.value = button.getAttribute("data-serial");
