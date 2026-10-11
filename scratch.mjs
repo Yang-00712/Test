@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // 刮刮樂公式試算（命令列版）。
 // 來源：https://www.threads.com/@paulchu0258/post/DeV5aAamdix
-// 用法：node scratch.mjs 034391-055 --rate 30 [--step 0.033] [--count 30] [--max 99] [--min 0] [--split 222|111111] [--ticket 名稱或期別] [--price 100|200|300|500|1000|2000] [--auto]
+// 用法：node scratch.mjs 034391-055 --rate 30 [--step 0.033] [--count 30] [--max 99] [--min 0] [--split 222|111111] [--ticket 名稱或期別] [--price 100|200|300|500|1000|2000] [--auto] [--profit] [--div 100|1000]
+// --profit：面額改用賺錢率（刮到比票價多的機率）當中獎率；--div 再除以 100 或 1000。
 // --auto：加成 = 中獎率 ÷ 10，組數 = 中獎率 × 一本張數（原作者的規則）。
 // --ticket 會從同目錄的 tickets.json（台彩公告的本期整體中獎率）帶入中獎率。
 // 加總 100 以上：加總 × (中獎率 + step × k)；加總小於 100：加總 × (1 + 中獎率 × k)。
@@ -98,12 +99,12 @@ function printStructure(t) {
 
 // 各面額歷年（2014–2026，台彩公告）中獎率的款數、最低、中位、最高。
 const PRICE_PRESETS = {
-  100: { n: 202, min: 22.12, median: 33.0, max: 100.0 },
-  200: { n: 343, min: 24.03, median: 32.0, max: 50.35 },
-  300: { n: 56, min: 31.0, median: 36.0, max: 40.15 },
-  500: { n: 81, min: 31.43, median: 41.0, max: 100.0 },
-  1000: { n: 29, min: 43.97, median: 70.0, max: 70.79 },
-  2000: { n: 14, min: 69.33, median: 69.33, max: 82.55 },
+  100: { n: 202, min: 22.12, median: 33.0, max: 100.0, profit: 12.03 },
+  200: { n: 343, min: 24.03, median: 32.0, max: 50.35, profit: 15.2 },
+  300: { n: 56, min: 31.0, median: 36.0, max: 40.15, profit: 16.44 },
+  500: { n: 81, min: 31.43, median: 41.0, max: 100.0, profit: 14.79 },
+  1000: { n: 29, min: 43.97, median: 70.0, max: 70.79, profit: 20.5 },
+  2000: { n: 14, min: 69.33, median: 69.33, max: 82.55, profit: 10.29 },
 };
 
 function usage(message) {
@@ -130,6 +131,8 @@ function main() {
       ticket: { type: "string", short: "t" },
       price: { type: "string", short: "p" },
       auto: { type: "boolean", short: "a", default: false },
+      profit: { type: "boolean", default: false },
+      div: { type: "string" },
     },
   });
   const serial = positionals[0];
@@ -146,9 +149,11 @@ function main() {
     if (!preset) {
       usage("--price 只能是 100、200、300、500、1000 或 2000。");
     }
-    rateText = String(preset.median);
+    const divisor = values.div ? Number(values.div) : 1;
+    const base = values.profit ? preset.profit : preset.median;
+    rateText = String(base / divisor);
     console.log(
-      `面額 $${values.price}：歷年 ${preset.n} 款，中獎率 ${preset.min}% 到 ${preset.max}%，先用中位數 ${preset.median}%`,
+      `面額 $${values.price}：${values.profit ? "賺錢率" : "中獎率"}中位 ${base}%${divisor === 1 ? "" : ` ÷ ${divisor} = ${base / divisor}%`}`,
     );
   }
   if (values.ticket) {

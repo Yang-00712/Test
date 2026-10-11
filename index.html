@@ -238,6 +238,7 @@
                 <button type="button" class="segment" data-price="2000">$2000</button>
                 <button type="button" class="segment active" data-price="">不限</button>
               </div>
+              <div class="tags" id="price-apply"></div>
               <small id="price-hint"></small>
             </div>
             <div class="field">
@@ -458,12 +459,12 @@
     var SPLITS = { "222": [2, 2, 2], "111111": [1, 1, 1, 1, 1, 1] };
     // 各面額歷年（2014–2026，台彩公告）中獎率：款數、最低、中位、最高。中位數當預設值。
     var PRICE_PRESETS = {
-      "100": { n: 202, min: 22.12, median: 33.0, max: 100.0 },
-      "200": { n: 343, min: 24.03, median: 32.0, max: 50.35 },
-      "300": { n: 56, min: 31.0, median: 36.0, max: 40.15 },
-      "500": { n: 81, min: 31.43, median: 41.0, max: 100.0 },
-      "1000": { n: 29, min: 43.97, median: 70.0, max: 70.79 },
-      "2000": { n: 14, min: 69.33, median: 69.33, max: 82.55 }
+      "100": { n: 202, min: 22.12, median: 33.0, max: 100.0, profit: 12.03 },
+      "200": { n: 343, min: 24.03, median: 32.0, max: 50.35, profit: 15.2 },
+      "300": { n: 56, min: 31.0, median: 36.0, max: 40.15, profit: 16.44 },
+      "500": { n: 81, min: 31.43, median: 41.0, max: 100.0, profit: 14.79 },
+      "1000": { n: 29, min: 43.97, median: 70.0, max: 70.79, profit: 20.5 },
+      "2000": { n: 14, min: 69.33, median: 69.33, max: 82.55, profit: 10.29 }
     };
     var price = "";
     var mode = "auto";
@@ -774,19 +775,10 @@
         return "<tr" + (row[0] === t.tiers[0][0] ? ' class="featured"' : "") + '><td>' + escapeHtml(label) + '</td><td class="num">' + fmtInt(row[1]) + '</td><td class="num">' + fmtPct(p) + '</td><td class="num">1 : ' + fmtInt(Math.round(issued / row[1])) + "</td></tr>";
       }).join("");
       oEls.note.textContent = "發行 " + fmtInt(issued) + " 張，中獎 " + fmtInt(winners) + " 張。";
-      var profitPct = profitWinners / issued * 100;
-      var opts = [["rate", t.rate, "中獎率 " + t.rate.toFixed(2) + "%"], ["p1", profitPct, "賺錢率 " + profitPct.toFixed(2) + "%"], ["p10", profitPct / 10, "÷10 " + (profitPct / 10).toFixed(3) + "%"], ["p100", profitPct / 100, "÷100 " + (profitPct / 100).toFixed(4) + "%"]];
-      byId("o-apply").innerHTML = opts.map(function (o) {
-        return '<button type="button" class="button small light" data-apply="' + o[1] + '">套用 ' + escapeHtml(o[2]) + "</button>";
-      }).join("");
+      applyChips(byId("o-apply"), t.rate, profitWinners / issued * 100);
       oEls.empty.hidden = true; oEls.body.hidden = false;
     }
-    byId("o-apply").addEventListener("click", function (event) {
-      var button = event.target.closest("[data-apply]");
-      if (!button) { return; }
-      els.rate.value = String(Math.round(Number(button.getAttribute("data-apply")) * 10000) / 10000);
-      render();
-    });
+    bindApply(byId("o-apply"));
     function applyTicket(vol) {
       var t = null;
       TICKETS.forEach(function (x) { if (x.vol === vol) { t = x; } });
@@ -815,18 +807,37 @@
       });
     });
     var priceHint = byId("price-hint");
+    var priceApply = byId("price-apply");
+    function applyChips(container, rateValue, profitValue) {
+      var opts = [["中獎率 " + rateValue.toFixed(2), rateValue], ["賺錢率 " + profitValue.toFixed(2), profitValue], ["÷100 " + (profitValue / 100).toFixed(4), profitValue / 100], ["÷1000 " + (profitValue / 1000).toFixed(5), profitValue / 1000]];
+      container.innerHTML = opts.map(function (o) {
+        return '<button type="button" class="button small light" data-apply="' + o[1] + '">' + escapeHtml(o[0]) + "</button>";
+      }).join("");
+    }
+    function bindApply(container) {
+      container.addEventListener("click", function (event) {
+        var button = event.target.closest("[data-apply]");
+        if (!button) { return; }
+        els.rate.value = String(Math.round(Number(button.getAttribute("data-apply")) * 100000) / 100000);
+        render();
+      });
+    }
+    bindApply(priceApply);
+    if (PRICE_PRESETS[price]) { applyChips(priceApply, PRICE_PRESETS[price].median, PRICE_PRESETS[price].profit); }
     Array.prototype.forEach.call(document.querySelectorAll("#price .segment"), function (button) {
       button.addEventListener("click", function () {
         price = button.getAttribute("data-price");
         var preset = PRICE_PRESETS[price];
         if (preset) {
           els.rate.value = String(preset.median);
-          priceHint.textContent = preset.n + " 款，中獎率 " + preset.min.toFixed(2) + "% 到 " + preset.max.toFixed(2) + "%，先用 " + preset.median.toFixed(2) + "%。";
+          applyChips(priceApply, preset.median, preset.profit);
+          priceHint.textContent = preset.n + " 款，中獎率 " + preset.min.toFixed(2) + "% 到 " + preset.max.toFixed(2) + "%。";
           ticketSelect.value = "";
           renderOfficial(null);
           toast("面額 $" + price + "：中獎率先用 " + preset.median.toFixed(2) + "%。");
         } else {
           priceHint.textContent = "";
+          priceApply.innerHTML = "";
         }
         fillTicketOptions(ticketSearch.value);
         render();
