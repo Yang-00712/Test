@@ -140,6 +140,26 @@
   .button:hover:not(:disabled) { filter: brightness(0.96); }
   .icon-button { width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 10px; background: transparent; flex-shrink: 0; border-radius: 12px; color: inherit; }
 
+  .segmented { display: flex; border-radius: 10px; background: var(--control-raised); padding: 4px; gap: 3px; }
+  .segment { flex: 1; padding: 9px 10px; background: transparent; color: #6b7f70; border-radius: 7px; font-size: 13px; white-space: nowrap; min-height: 40px; }
+  .segment.active { background: var(--paper); color: var(--teal); box-shadow: 0 2px 5px #263b2d0c; font-weight: 700; }
+  .foot-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+  .row-list { display: grid; gap: 8px; }
+  .data-row { position: relative; background: var(--paper); border: 1px solid var(--line); border-radius: 13px; overflow: hidden; display: flex; align-items: center; }
+  .data-row:hover { border-color: #b9ccb8; }
+  .data-row.selected { border-color: var(--teal); box-shadow: var(--ring-selected); }
+  .row-main { flex: 1; min-width: 0; display: flex; gap: 12px; padding: 13px 15px; align-items: center; cursor: pointer; min-height: 72px; background: transparent; color: inherit; text-align: left; border-radius: 0; }
+  .row-no { font-size: 11px; color: #90a197; width: 24px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .row-content { min-width: 0; flex: 1; }
+  .row-code { font: 600 13px/1.5 var(--font-mono); overflow-wrap: anywhere; color: var(--code-ink); }
+  .row-meta { font-size: 11px; display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; color: #7a8b82; align-items: center; }
+  .row-time { font-variant-numeric: tabular-nums; min-width: 60px; text-align: right; }
+  .row-time strong { font-size: 14px; display: block; color: var(--teal); }
+  .row-time small { font-size: 11px; display: block; margin-top: 5px; color: var(--muted); }
+  .row-delete { margin-right: 6px; color: var(--muted); }
+  .empty-state { padding: 28px 16px; text-align: center; color: var(--muted); line-height: 1.7; font-size: 13px; }
+  .count-tag { margin-left: auto; }
+  .toast { position: fixed; left: 50%; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 11; background: var(--toast); color: #fff; box-shadow: 0 6px 26px #13282120; border-radius: 12px; padding: 14px 20px; font-size: 13px; max-width: calc(100% - 28px); text-align: center; line-height: 1.6; }
   .manual-dock { position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 9px 10px; width: min(550px, calc(100vw - 28px)); background: var(--deep); border-radius: 12px; box-shadow: var(--shadow-dock); color: #fff; }
   .manual-dock > span { font-size: 12px; margin-right: auto; line-height: 1.5; }
   .manual-dock .button { min-height: 40px; padding: 8px 12px; font-size: 12px; }
@@ -200,6 +220,15 @@
             </summary>
             <div class="stack">
               <div class="field">
+                <span id="split-label">號碼前六碼怎麼拆</span>
+                <div class="segmented" role="group" aria-labelledby="split-label" id="split">
+                  <button type="button" class="segment active" data-split="222">2+2+2</button>
+                  <button type="button" class="segment" data-split="33">3+3</button>
+                  <button type="button" class="segment" data-split="123">1+2+3</button>
+                </div>
+                <small>原作者用 2+2+2，拆法不同，加總和結果都會不一樣。</small>
+              </div>
+              <div class="field">
                 <label for="step">公式一每一組加多少</label>
                 <input id="step" type="number" inputmode="decimal" min="0" step="0.001" value="0.033">
                 <small>原作者用 0.033。公式二每一組加的是中獎率本身。</small>
@@ -221,6 +250,24 @@
               </div>
             </div>
           </details>
+          <div class="foot-actions">
+            <button type="button" class="button primary w100" id="save" style="width: 100%">存進卡夾</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-label="卡夾">
+        <div class="card-pad">
+          <div class="eyebrow">卡夾</div>
+          <div class="card-head">
+            <div class="card-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a1 1 0 0 1 1-1h5l2 3h9a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Z"/></svg>
+              <h2>存起來的彩券</h2>
+            </div>
+            <span class="tag" id="wallet-count">0 張</span>
+          </div>
+          <div class="row-list" id="wallet"></div>
+          <div class="inline-hint">資料只存在這台裝置，不會上傳。</div>
         </div>
       </section>
     </aside>
@@ -289,9 +336,11 @@
   </div>
 </main>
 
+<div class="toast" id="toast" hidden></div>
+
 <div class="manual-dock" id="install" hidden>
   <span id="install-text"></span>
-  <button type="button" class="button primary" id="install-go" hidden>安裝</button>
+  <button type="button" class="button" id="install-go" hidden>安裝</button>
   <button type="button" class="icon-button" id="install-close" aria-label="關閉">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
   </button>
@@ -304,20 +353,37 @@
     var out = {
       error: byId("error"), result: byId("result"), leadPicks: byId("lead-picks"), leadNote: byId("lead-note"), leadValue: byId("lead-value"),
       rule: byId("rule"), steps: byId("steps"), picks: byId("picks"), summary: byId("summary"), book: byId("book"), tbody: byId("tbody"),
-      legendSold: byId("legend-sold")
+      legendSold: byId("legend-sold"), wallet: byId("wallet"), walletCount: byId("wallet-count"), toast: byId("toast")
     };
     var KEY = "scratch-formula-inputs";
+    var WALLET_KEY = "scratch-wallet";
+    var split = "222";
+    var current = null;
 
-    try {
-      var saved = JSON.parse(localStorage.getItem(KEY) || "null");
-      if (saved) {
-        for (var key in els) {
-          if (Object.prototype.hasOwnProperty.call(saved, key) && saved[key] !== null && saved[key] !== undefined) {
-            els[key].value = saved[key];
-          }
+    function load(key, fallback) {
+      try { var v = JSON.parse(localStorage.getItem(key) || "null"); return v === null ? fallback : v; } catch (error) { return fallback; }
+    }
+    function store(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch (error) { /* storage unavailable */ }
+    }
+
+    var saved = load(KEY, null);
+    if (saved) {
+      for (var key in els) {
+        if (Object.prototype.hasOwnProperty.call(saved, key) && saved[key] !== null && saved[key] !== undefined) {
+          els[key].value = saved[key];
         }
       }
-    } catch (error) { /* storage unavailable: use defaults */ }
+      if (saved.split === "222" || saved.split === "33" || saved.split === "123") { split = saved.split; }
+    }
+
+    var toastTimer = null;
+    function toast(message) {
+      out.toast.textContent = message;
+      out.toast.hidden = false;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { out.toast.hidden = true; }, 3200);
+    }
 
     function round6(value) { return Math.round(value * 1e6) / 1e6; }
     function pad2(n) { return String(n).padStart(2, "0"); }
@@ -329,15 +395,18 @@
       });
     }
 
-    function parseSerial(raw) {
+    var SPLITS = { "222": [2, 2, 2], "33": [3, 3], "123": [1, 2, 3] };
+
+    function parseSerial(raw, how) {
       var digits = String(raw).replace(/\D/g, "");
       if (digits.length < 6) { return null; }
       var book = digits.slice(0, 6);
       var index = digits.length >= 9 ? Number(digits.slice(6, 9)) : null;
-      var a = Number(book.slice(0, 2));
-      var b = Number(book.slice(2, 4));
-      var c = Number(book.slice(4, 6));
-      return { book: book, index: index, a: a, b: b, c: c, d: a + b + c };
+      var parts = [];
+      var at = 0;
+      SPLITS[how].forEach(function (len) { parts.push(book.slice(at, at + len)); at += len; });
+      var d = parts.reduce(function (sum, part) { return sum + Number(part); }, 0);
+      return { book: book, index: index, parts: parts, d: d };
     }
 
     // 公式一（加總 100 以上）：加總 × (中獎率 + 0.033 × 組數)
@@ -363,16 +432,20 @@
       out.result.hidden = true;
       out.book.textContent = "";
       out.tbody.textContent = "";
+      current = null;
+    }
+
+    function syncSplitButtons() {
+      Array.prototype.forEach.call(document.querySelectorAll("#split .segment"), function (button) {
+        button.classList.toggle("active", button.getAttribute("data-split") === split);
+      });
     }
 
     function render() {
-      try {
-        localStorage.setItem(KEY, JSON.stringify({
-          serial: els.serial.value, rate: els.rate.value, step: els.step.value, count: els.count.value, max: els.max.value, min: els.min.value
-        }));
-      } catch (error) { /* storage unavailable: nothing to remember */ }
+      store(KEY, { serial: els.serial.value, rate: els.rate.value, step: els.step.value, count: els.count.value, max: els.max.value, min: els.min.value, split: split });
+      syncSplitButtons();
 
-      var ticket = parseSerial(els.serial.value);
+      var ticket = parseSerial(els.serial.value, split);
       var rate = Number(els.rate.value) / 100;
       var step = Number(els.step.value);
       var count = Math.max(1, Math.min(200, Math.floor(Number(els.count.value) || 0)));
@@ -398,8 +471,11 @@
       all.sort(function (x, y) { return x - y; });
       var inRange = rows.filter(function (row) { return row.picks.length > 0; }).length;
       var ownHit = ticket.index !== null && seen[ticket.index] === true;
+      var leadText = featured.picks.length ? featured.picks.map(pad2).join(" / ") : (featured.status === "sold" ? "已賣掉" : "超出範圍");
 
-      out.leadPicks.textContent = featured.picks.length ? featured.picks.map(pad2).join(" / ") : (featured.status === "sold" ? "已賣掉" : "超出範圍");
+      current = { serial: els.serial.value.trim(), rate: els.rate.value, split: split, min: min, d: ticket.d, lead: leadText, picks: all.slice() };
+
+      out.leadPicks.textContent = leadText;
       out.leadNote.textContent = "第 " + featured.k + " 組的結果，原作者示範的那一組";
       out.leadValue.textContent = featured.value.toFixed(3);
 
@@ -407,8 +483,9 @@
         ? "加總 " + ticket.d + " 小於 100，用公式二：加總 × (1 + 中獎率 × 組數)。加總 100 以上才用公式一：加總 × (中獎率 + " + plain(step) + " × 組數)。"
         : "加總 " + ticket.d + " 有 100 以上，用公式一：加總 × (中獎率 + " + plain(step) + " × 組數)。加總小於 100 時改用公式二：加總 × (1 + 中獎率 × 組數)。";
 
+      var splitName = { "222": "2+2+2", "33": "3+3", "123": "1+2+3" }[split];
       out.steps.innerHTML =
-        '<div class="mini-stat"><span>號碼前六碼拆成三段相加</span><strong>' + pad2(ticket.a) + " + " + pad2(ticket.b) + " + " + pad2(ticket.c) + " = " + ticket.d + "</strong></div>" +
+        '<div class="mini-stat"><span>號碼前六碼拆成 ' + splitName + " 相加</span><strong>" + ticket.parts.join(" + ") + " = " + ticket.d + "</strong></div>" +
         '<div class="mini-stat"><span>' + (second ? "底數 1 加上第 " + featured.k + " 組的加成（中獎率 × " + featured.k + "）" : "中獎率加上第 " + featured.k + " 組的加成") + "</span><strong>" + plain(base) + " + " + plain(stepUsed) + " × " + featured.k + " = " + plain(featured.multiplier) + "</strong></div>" +
         '<div class="mini-stat"><span>兩個相乘</span><strong>' + ticket.d + " × " + plain(featured.multiplier) + " = " + featured.value.toFixed(3) + "</strong></div>";
 
@@ -441,7 +518,70 @@
           '<td class="num">' + plain(base) + " + " + plain(stepUsed) + " × " + row.k + " = " + plain(row.multiplier) + "</td>" +
           '<td class="num">' + ticket.d + " × " + plain(row.multiplier) + " = " + row.value.toFixed(3) + "</td></tr>";
       }).join("");
+      renderWallet();
     }
+
+    // 卡夾：存在這台裝置的 localStorage
+    function wallet() { var list = load(WALLET_KEY, []); return Array.isArray(list) ? list : []; }
+    function formatDate(iso) {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) { return ""; }
+      return (d.getMonth() + 1) + "/" + d.getDate() + " " + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+    }
+    function renderWallet() {
+      var list = wallet();
+      out.walletCount.textContent = list.length + " 張";
+      if (!list.length) {
+        out.wallet.innerHTML = '<div class="empty-state">還沒有存任何彩券。<br>算好之後按「存進卡夾」。</div>';
+        return;
+      }
+      var activeSerial = current ? current.serial.replace(/\D/g, "") : "";
+      out.wallet.innerHTML = list.map(function (item, i) {
+        var selected = activeSerial && item.serial.replace(/\D/g, "") === activeSerial;
+        return '<div class="data-row' + (selected ? " selected" : "") + '">' +
+          '<button type="button" class="row-main" data-load="' + i + '">' +
+            '<span class="row-no">' + (i + 1) + "</span>" +
+            '<span class="row-content"><span class="row-code">' + escapeHtml(item.serial) + "</span>" +
+            '<span class="row-meta"><span>中獎率 ' + escapeHtml(item.rate) + "%</span><span>·</span><span>" + escapeHtml(formatDate(item.savedAt)) + "</span></span></span>" +
+            '<span class="row-time"><strong>' + escapeHtml(item.lead) + "</strong><small>建議</small></span>" +
+          "</button>" +
+          '<button type="button" class="icon-button row-delete" data-delete="' + i + '" aria-label="刪除">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg>' +
+          "</button></div>";
+      }).join("");
+    }
+    byId("save").addEventListener("click", function () {
+      if (!current) { toast("先把號碼和中獎率填好。"); return; }
+      var list = wallet();
+      var digits = current.serial.replace(/\D/g, "");
+      var existing = -1;
+      list.forEach(function (item, i) { if (item.serial.replace(/\D/g, "") === digits) { existing = i; } });
+      var entry = { serial: current.serial, rate: current.rate, split: current.split, min: current.min, d: current.d, lead: current.lead, picks: current.picks, savedAt: new Date().toISOString() };
+      if (existing >= 0) { list[existing] = entry; } else { list.unshift(entry); }
+      store(WALLET_KEY, list);
+      renderWallet();
+      toast(existing >= 0 ? "已更新卡夾裡的這張。" : "已存進卡夾。");
+    });
+    out.wallet.addEventListener("click", function (event) {
+      var loadBtn = event.target.closest("[data-load]");
+      var delBtn = event.target.closest("[data-delete]");
+      var list = wallet();
+      if (delBtn) {
+        var di = Number(delBtn.getAttribute("data-delete"));
+        if (list[di]) { list.splice(di, 1); store(WALLET_KEY, list); renderWallet(); toast("已從卡夾移除。"); }
+        return;
+      }
+      if (loadBtn) {
+        var item = list[Number(loadBtn.getAttribute("data-load"))];
+        if (!item) { return; }
+        els.serial.value = item.serial;
+        els.rate.value = item.rate;
+        if (SPLITS[item.split]) { split = item.split; }
+        els.min.value = item.min || 0;
+        render();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
 
     Object.keys(els).forEach(function (key) { els[key].addEventListener("input", render); });
     Array.prototype.forEach.call(document.querySelectorAll(".examples button"), function (button) {
@@ -451,13 +591,34 @@
         render();
       });
     });
+    Array.prototype.forEach.call(document.querySelectorAll("#split .segment"), function (button) {
+      button.addEventListener("click", function () { split = button.getAttribute("data-split"); render(); });
+    });
     render();
 
+    // 自動更新：偵測到新版的 service worker 就重載一次，重載後提示。
+    try {
+      if (sessionStorage.getItem("scratch-updated") === "1") { sessionStorage.removeItem("scratch-updated"); toast("已更新到最新版。"); }
+    } catch (error) { /* ignore */ }
     if ("serviceWorker" in navigator) {
+      var hadController = !!navigator.serviceWorker.controller;
+      var refreshing = false;
+      navigator.serviceWorker.addEventListener("controllerchange", function () {
+        if (!hadController || refreshing) { return; }
+        refreshing = true;
+        try { sessionStorage.setItem("scratch-updated", "1"); } catch (error) { /* ignore */ }
+        window.location.reload();
+      });
       window.addEventListener("load", function () {
-        navigator.serviceWorker.register("sw.js").catch(function () { /* offline support unavailable */ });
+        navigator.serviceWorker.register("sw.js").then(function (registration) {
+          function check() { registration.update().catch(function () { /* offline */ }); }
+          document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") { check(); } });
+          window.addEventListener("online", check);
+          setInterval(check, 60 * 60 * 1000);
+        }).catch(function () { /* offline support unavailable */ });
       });
     }
+
     var dock = byId("install");
     var dockText = byId("install-text");
     var goBtn = byId("install-go");
@@ -477,7 +638,7 @@
     window.addEventListener("beforeinstallprompt", function (event) {
       event.preventDefault();
       deferredPrompt = event;
-      showDock("加到主畫面，沒網路也能算。", true);
+      showDock("加到主畫面，沒網路也能算，有新版會自己更新。", true);
     });
     goBtn.addEventListener("click", function () {
       if (!deferredPrompt) { return; }
