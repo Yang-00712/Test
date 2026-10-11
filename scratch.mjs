@@ -168,7 +168,7 @@ function main() {
   const rate = Number(rateText) / 100;
   const max = Math.max(0, Math.floor(Number(values.max)));
   const step = values.auto
-    ? Math.round(rate * 100) / 1000
+    ? Math.round(rate * 1000) / 10000
     : Number(values.step);
   const count = values.auto
     ? Math.max(1, Math.round(rate * (max + 1)))
