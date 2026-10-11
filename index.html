@@ -657,7 +657,7 @@
     var oEls = { empty: byId("official-empty"), body: byId("official-body"), title: byId("official-title"), rate: byId("o-rate"), profit: byId("o-profit"), ev: byId("o-ev"), evNote: byId("o-ev-note"), tbody: byId("o-tbody"), note: byId("o-note") };
     function fmtMoney(n) { return "NT$" + Number(n).toLocaleString("en-US"); }
     function fmtInt(n) { return Number(n).toLocaleString("en-US"); }
-    function fmtPct(p) { return p >= 1 ? p.toFixed(2) + "%" : p >= 0.01 ? p.toFixed(3) + "%" : p.toExponential(2) + "%"; }
+    function fmtPct(p) { return p >= 1 ? p.toFixed(2) + "%" : p >= 0.01 ? p.toFixed(3) + "%" : p >= 0.0001 ? p.toFixed(4) + "%" : "<0.0001%"; }
     function renderOfficial(t) {
       if (!t || !t.tiers || !t.issued) {
         oEls.body.hidden = true; oEls.empty.hidden = false; oEls.title.textContent = "這款的真實機率";
