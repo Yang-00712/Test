@@ -1,0 +1,991 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>刮刮樂公式</title>
+<meta name="theme-color" content="#163f3b">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="刮刮樂公式">
+<style>
+  /* Tokens from the LOG design system (tokens.json). Single light theme by design. */
+  :root {
+    color-scheme: light;
+    --ink: #243b3a;
+    --muted: #6d7d7b;
+    --teal: #17695e;
+    --deep: #163f3b;
+    --line: #dde5df;
+    --lime: #d5ec9e;
+    --paper: #fff;
+    --red: #b83937;
+    --page: #f4f6f3;
+    --control: #e9efeb;
+    --control-raised: #edf1ec;
+    --control-border: #d3ddd6;
+    --focus-ring: #3f9187;
+    --focus-ring-field: #64a298;
+    --placeholder: #8b9892;
+    --table-head: #eff4f0;
+    --table-head-ink: #597068;
+    --table-rule: #e7ece8;
+    --tag-ground: #edf3ee;
+    --tag-ink: #547062;
+    --tag-green-ground: #e4f2e7;
+    --tag-green-ink: #316c45;
+    --mark-selected: #d9eee3;
+    --info-ground: #f2f5ef;
+    --info-ink: #587057;
+    --code-ink: #314a43;
+    --notice-error-ground: #fff0ed;
+    --notice-error-border: #efd7d1;
+    --notice-error-ink: #923f37;
+    --on-deep-muted: #d0e2d9;
+    --toast: #1d4039;
+    --shadow-dock: 0 5px 24px #18352d38;
+    --ring-selected: 0 0 0 1px #17695e;
+    --font-sans: system-ui, -apple-system, "Segoe UI", "Microsoft JhengHei", sans-serif;
+    --font-mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  }
+
+  /* Base rules lifted from the LOG bundle.css */
+  * { box-sizing: border-box; }
+  html { background: var(--page); padding-top: env(safe-area-inset-top, 0px); }
+  body { margin: 0; font-family: var(--font-sans); color: var(--ink); background: var(--page); font-synthesis: none; -webkit-font-smoothing: antialiased; }
+  button, input { font: inherit; }
+  button { cursor: pointer; border: 0; }
+  button:focus-visible, summary:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+  input:focus { outline: 2px solid var(--focus-ring-field); outline-offset: 1px; }
+  h2, h3, p { margin: 0; }
+  h2 { font-size: 18px; line-height: 1.5; }
+  h3 { font-size: 15px; }
+  svg { width: 21px; height: 21px; flex-shrink: 0; vertical-align: middle; }
+  [hidden] { display: none !important; }
+
+  .workspace { max-width: 1240px; margin: auto; padding: 30px 32px 60px; }
+  .layout { display: grid; grid-template-columns: 294px minmax(0, 1fr); gap: 24px; align-items: start; }
+  .aside { display: grid; gap: 16px; position: sticky; top: 20px; min-width: 0; }
+  .main-col { min-width: 0; display: grid; gap: 16px; }
+
+  .card { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+  .card-pad { padding: 24px; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 19px; }
+  .card-label { display: flex; align-items: center; gap: 9px; }
+  .card-label svg { color: var(--teal); }
+  .eyebrow { font-size: 11px; font-weight: 750; letter-spacing: 1.8px; text-transform: uppercase; color: var(--teal); margin-bottom: 8px; }
+  .inline-hint { font-size: 11px; line-height: 1.8; color: var(--muted); margin-top: 8px; }
+  .info-note { padding: 13px 15px; border-radius: 11px; background: var(--info-ground); font-size: 12px; line-height: 1.75; color: var(--info-ink); }
+  .notice.error { background: var(--notice-error-ground); color: var(--notice-error-ink); padding: 13px 16px; border: 1px solid var(--notice-error-border); border-radius: 12px; font-size: 13px; line-height: 1.7; }
+
+  .field { display: grid; gap: 8px; min-width: 0; }
+  .field label, .field > span { font-size: 12px; color: #64786b; }
+  .field small { font-size: 11px; line-height: 1.7; color: var(--muted); }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+  .stack { display: grid; gap: 16px; }
+  .button.small { padding: 7px 12px; min-height: 40px; font-size: 13px; }
+  .button.light { background: var(--paper); border: 1px solid var(--line); }
+  input[type=text], input[type=number] { width: 100%; background: var(--paper); border: 1px solid var(--control-border); color: var(--ink); border-radius: 10px; padding: 11px 12px; min-height: 46px; font-size: 16px; font-variant-numeric: tabular-nums; }
+  input::placeholder { color: var(--placeholder); }
+  input:disabled { background: var(--control-raised); color: var(--muted); border-color: transparent; }
+  select { width: 100%; background: var(--paper); border: 1px solid var(--control-border); color: var(--ink); border-radius: 10px; padding: 11px 12px; min-height: 46px; font-size: 16px; font-variant-numeric: tabular-nums; }
+  select:focus { outline: 2px solid var(--focus-ring-field); outline-offset: 1px; }
+  .ticket-pick { display: grid; gap: 8px; }
+
+  details.advanced { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 4px; }
+  details.advanced summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; font-size: 13px; font-weight: 650; color: var(--teal); cursor: pointer; border-radius: 10px; }
+  details.advanced summary::-webkit-details-marker { display: none; }
+  details.advanced summary svg { color: var(--teal); transition: transform 150ms ease; }
+  details.advanced[open] summary svg { transform: rotate(180deg); }
+  details.advanced .stack { padding: 6px 0 4px; }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+  .result-stat { padding: 19px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; min-width: 0; }
+  .result-stat > span { font-size: 12px; color: var(--muted); }
+  .result-stat > strong { font-size: 24px; display: block; margin: 10px 0 6px; font-variant-numeric: tabular-nums; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
+  .result-stat > small { font-size: 11px; color: var(--muted); }
+  .result-stat.lead { background: var(--mark-selected); border-color: var(--teal); box-shadow: var(--ring-selected); }
+  .result-stat.lead > strong { font-size: 30px; color: var(--teal); }
+
+  .mini-stat { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid #edf0ed; font-size: 13px; color: var(--muted); }
+  .mini-stat:last-child { border: 0; }
+  .mini-stat strong { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 650; text-align: right; overflow-wrap: anywhere; }
+
+  .tag { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--tag-ground); color: var(--tag-ink); font-size: 11px; font-weight: 650; border-radius: 6px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .tag.green { background: var(--tag-green-ground); color: var(--tag-green-ink); }
+  .tag.own { box-shadow: var(--ring-selected); }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .book { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; max-width: 560px; }
+  .cell { aspect-ratio: 1; display: grid; place-items: center; font-size: 11px; font-weight: 650; font-variant-numeric: tabular-nums; border-radius: 6px; background: var(--paper); border: 1px solid var(--line); color: var(--muted); }
+  .cell.hit { background: var(--mark-selected); border-color: var(--teal); color: var(--teal); }
+  .cell.own { box-shadow: var(--ring-selected); border-color: var(--teal); color: var(--ink); }
+  .cell.sold { background: var(--control-raised); border-color: transparent; color: var(--placeholder); text-decoration: line-through; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11px; line-height: 1.8; color: var(--muted); margin-top: 12px; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; border: 1px solid var(--line); background: var(--paper); }
+  .legend i.hit { background: var(--mark-selected); border-color: var(--teal); }
+  .legend i.own { box-shadow: var(--ring-selected); border-color: var(--teal); }
+  .legend i.sold { background: var(--control-raised); border-color: transparent; }
+
+  .table-scroll { max-height: 70vh; max-height: 70dvh; width: 100%; overflow: auto; border: 1px solid var(--line); border-radius: 13px; background: var(--paper); overscroll-behavior-x: contain; }
+  .data-table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; font-size: 12px; line-height: 1.45; font-variant-numeric: tabular-nums; }
+  .data-table th, .data-table td { padding: 8px 10px; border-bottom: 1px solid var(--table-rule); border-right: 1px solid #eef1ef; text-align: left; vertical-align: middle; white-space: nowrap; }
+  .data-table th { position: sticky; top: 0; z-index: 2; background: var(--table-head); color: var(--table-head-ink); font-size: 11px; }
+  .data-table tr.featured td { background: var(--mark-selected); }
+  .data-table td.out { color: var(--muted); }
+  .data-table td.num { font-family: var(--font-mono); color: var(--code-ink); }
+
+  .button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; padding: 11px 17px; font-weight: 650; font-size: 14px; line-height: 1.35; background: var(--control); color: var(--deep); }
+  .button.primary { background: var(--teal); color: #fff; }
+  .button:hover:not(:disabled) { filter: brightness(0.96); }
+  .icon-button { width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 10px; background: transparent; flex-shrink: 0; border-radius: 12px; color: inherit; }
+
+  .segmented { display: flex; border-radius: 10px; background: var(--control-raised); padding: 4px; gap: 3px; }
+  .segmented.wrap { flex-wrap: wrap; }
+  .segmented.wrap .segment { flex: 1 1 28%; }
+  .segment { flex: 1; padding: 9px 4px; background: transparent; color: #6b7f70; border-radius: 7px; font-size: 13px; white-space: nowrap; min-height: 40px; }
+  .segment.active { background: var(--paper); color: var(--teal); box-shadow: 0 2px 5px #263b2d0c; font-weight: 700; }
+  .foot-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+  .row-list { display: grid; gap: 8px; }
+  .data-row { position: relative; background: var(--paper); border: 1px solid var(--line); border-radius: 13px; overflow: hidden; display: flex; align-items: center; }
+  .data-row:hover { border-color: #b9ccb8; }
+  .data-row.selected { border-color: var(--teal); box-shadow: var(--ring-selected); }
+  .row-main { flex: 1; min-width: 0; display: flex; gap: 12px; padding: 13px 15px; align-items: center; cursor: pointer; min-height: 72px; background: transparent; color: inherit; text-align: left; border-radius: 0; }
+  .row-no { font-size: 11px; color: #90a197; width: 24px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .row-content { min-width: 0; flex: 1; }
+  .row-code { font: 600 13px/1.5 var(--font-mono); overflow-wrap: anywhere; color: var(--code-ink); }
+  .row-meta { font-size: 11px; display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; color: #7a8b82; align-items: center; }
+  .row-time { font-variant-numeric: tabular-nums; min-width: 60px; text-align: right; }
+  .row-time strong { font-size: 14px; display: block; color: var(--teal); }
+  .row-time small { font-size: 11px; display: block; margin-top: 5px; color: var(--muted); }
+  .row-delete { margin-right: 6px; color: var(--muted); }
+  .empty-state { padding: 28px 16px; text-align: center; color: var(--muted); line-height: 1.7; font-size: 13px; }
+  .count-tag { margin-left: auto; }
+  .stats-strip { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 13px; background: #fbfcfa; overflow: hidden; margin-bottom: 16px; }
+  .stats-strip div { padding: 14px 18px; border-right: 1px solid var(--line); min-width: 0; }
+  .stats-strip div:last-child { border: 0; }
+  .stats-strip strong { font-size: 21px; font-weight: 650; font-variant-numeric: tabular-nums; display: block; overflow-wrap: anywhere; }
+  .stats-strip span { display: block; font-size: 11px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+  @media (max-width: 540px) { .stats-strip { grid-template-columns: 1fr; } .stats-strip div { border-right: 0; border-bottom: 1px solid var(--line); } .stats-strip div:last-child { border: 0; } }
+  .toast { position: fixed; left: 50%; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 11; background: var(--toast); color: #fff; box-shadow: 0 6px 26px #13282120; border-radius: 12px; padding: 14px 20px; font-size: 13px; max-width: calc(100% - 28px); text-align: center; line-height: 1.6; }
+  .keypad { position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); z-index: 12; width: min(550px, 100vw); background: var(--deep); color: #fff; border-radius: 16px 16px 0 0; box-shadow: var(--shadow-dock); padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .keypad-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 2px 6px 10px; }
+  .keypad-head .kp-title { font-size: 12px; color: var(--on-deep-muted); }
+  .keypad-head .kp-preview { flex: 1; min-width: 0; font: 650 16px/1.3 var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; overflow-wrap: anywhere; }
+  .keypad-head .icon-button { color: var(--on-deep-muted); width: 36px; min-height: 36px; }
+  .keypad-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .kp { min-height: 48px; border-radius: 10px; background: var(--on-deep-well); color: #fff; font: 650 20px/1 var(--font-sans); font-variant-numeric: tabular-nums; display: flex; align-items: center; justify-content: center; border: 1px solid transparent; -webkit-tap-highlight-color: transparent; user-select: none; }
+  .kp:active { background: var(--on-deep-border); }
+  .kp.kp-fn { font-size: 15px; color: var(--on-deep-muted); }
+  .kp.kp-done { background: var(--control); color: var(--deep); font-size: 16px; grid-column: span 2; }
+  .kp svg { width: 22px; height: 22px; }
+  body.keypad-open { padding-bottom: 300px; }
+  body.keypad-open .manual-dock, body.keypad-open .toast { display: none; }
+  .manual-dock { position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 9px 10px; width: min(550px, calc(100vw - 28px)); background: var(--deep); border-radius: 12px; box-shadow: var(--shadow-dock); color: #fff; }
+  .manual-dock > span { font-size: 12px; margin-right: auto; line-height: 1.5; }
+  .manual-dock .button { min-height: 40px; padding: 8px 12px; font-size: 12px; }
+  .manual-dock .icon-button { color: var(--on-deep-muted); width: 40px; min-height: 40px; }
+
+  @media (max-width: 900px) {
+    .workspace { padding: 20px 20px 110px; }
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    .aside { position: static; }
+  }
+  @media (max-width: 540px) {
+    .workspace { padding: 16px 16px 110px; }
+    .card-pad { padding: 20px; }
+    .fields { grid-template-columns: 1fr; }
+    .result-stat.lead > strong { font-size: 26px; }
+  }
+  @media (max-width: 360px) {
+    .stat-grid { grid-template-columns: 1fr; }
+    .book { gap: 3px; }
+    .cell { font-size: 10px; border-radius: 4px; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<main class="workspace">
+  <div class="layout">
+    <aside class="aside">
+      <section class="card" aria-label="輸入">
+        <div class="card-pad">
+          <div class="eyebrow">Step 01</div>
+          <div class="card-head">
+            <div class="card-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16v12H4zM8 6v12M4 10h4M4 14h4"/></svg>
+              <h2>輸入彩券</h2>
+            </div>
+          </div>
+          <div class="stack">
+            <div class="field">
+              <label for="serial">彩券右上角的號碼</label>
+              <input id="serial" type="text" inputmode="numeric" autocomplete="off" placeholder="034391-055" value="034391-055">
+              <small>橫線可以不打。</small>
+            </div>
+            <div class="field">
+              <span id="price-label">面額</span>
+              <div class="segmented wrap" role="group" aria-labelledby="price-label" id="price">
+                <button type="button" class="segment" data-price="100">$100</button>
+                <button type="button" class="segment" data-price="200">$200</button>
+                <button type="button" class="segment" data-price="300">$300</button>
+                <button type="button" class="segment" data-price="500">$500</button>
+                <button type="button" class="segment" data-price="1000">$1000</button>
+                <button type="button" class="segment" data-price="2000">$2000</button>
+                <button type="button" class="segment active" data-price="">不限</button>
+              </div>
+              <small id="price-hint"></small>
+            </div>
+            <div class="field">
+              <label for="ticket-search">哪一款彩券</label>
+              <div class="ticket-pick">
+                <input id="ticket-search" type="text" autocomplete="off" placeholder="輸入名稱或期別找，例如 嗨刮">
+                <select id="ticket" aria-label="彩券款式"><option value="">自己填中獎率</option></select>
+              </div>
+              <small id="ticket-hint"></small>
+            </div>
+            <div class="field">
+              <label for="rate">背面印的中獎率（%）</label>
+              <input id="rate" type="text" inputmode="decimal" autocomplete="off" value="30">
+              <small>彩券背面有印。</small>
+            </div>
+            <div class="field">
+              <label for="profit">賺錢率（%）</label>
+              <input id="profit" type="text" inputmode="decimal" autocomplete="off" value="">
+              <div class="tags" id="profit-apply">
+                <button type="button" class="button small light" data-div="1">套用</button>
+                <button type="button" class="button small light" data-div="100">÷100</button>
+                <button type="button" class="button small light" data-div="1000">÷1000</button>
+                <button type="button" class="button small light" data-div="3.14159265">÷π</button>
+              </div>
+              <div class="tags" style="align-items: center">
+                <span style="font-size: 12px; color: #64786b">÷</span>
+                <input id="divisor" type="text" inputmode="decimal" autocomplete="off" placeholder="自己填" style="width: 110px; min-height: 40px; padding: 7px 10px">
+                <button type="button" class="button small light" id="divisor-apply">套用</button>
+              </div>
+              <small>按了會填進上面的中獎率。</small>
+            </div>
+            <div class="field">
+              <span id="mode-label">怎麼套公式</span>
+              <div class="segmented" role="group" aria-labelledby="mode-label" id="mode">
+                <button type="button" class="segment active" data-mode="auto">自動</button>
+                <button type="button" class="segment" data-mode="manual">手動</button>
+              </div>
+              <small id="mode-hint"></small>
+            </div>
+          </div>
+          <details class="advanced">
+            <summary>
+              <span>進階（通常不用動）</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <div class="stack">
+              <div class="field">
+                <span id="split-label">號碼前六碼怎麼拆</span>
+                <div class="segmented" role="group" aria-labelledby="split-label" id="split">
+                  <button type="button" class="segment active" data-split="222">2+2+2</button>
+                  <button type="button" class="segment" data-split="111111">1+1+1+1+1+1</button>
+                </div>
+                <small>原作者用 2+2+2。</small>
+              </div>
+              <div class="field">
+                <label for="step">公式一每一組加多少</label>
+                <input id="step" type="text" inputmode="decimal" autocomplete="off" value="0.033">
+                <small>原作者用 0.033。</small>
+                <button type="button" class="button small light" id="step-auto" style="justify-self: start">依中獎率換算（÷10）</button>
+              </div>
+              <div class="field">
+                <label for="count">要算幾組</label>
+                <input id="count" type="text" inputmode="numeric" autocomplete="off" value="30">
+                <small>原作者算 30 組。</small>
+              </div>
+              <div class="field">
+                <label for="max">一本最後一張的號碼</label>
+                <input id="max" type="text" inputmode="numeric" autocomplete="off" value="99">
+                <small>一本 100 張就填 99。</small>
+              </div>
+              <div class="field">
+                <label for="min">櫃檯剩下的最小號碼</label>
+                <input id="min" type="text" inputmode="numeric" autocomplete="off" value="0">
+                <small>沒有就留 0。</small>
+              </div>
+            </div>
+          </details>
+          <div class="foot-actions">
+            <button type="button" class="button primary w100" id="save" style="width: 100%">存進卡夾</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-label="卡夾">
+        <div class="card-pad">
+          <div class="eyebrow">卡夾</div>
+          <div class="card-head">
+            <div class="card-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a1 1 0 0 1 1-1h5l2 3h9a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Z"/></svg>
+              <h2>存起來的彩券</h2>
+            </div>
+            <span class="tag" id="wallet-count">0 張</span>
+          </div>
+          <div class="row-list" id="wallet"></div>
+          <div class="inline-hint">只存在這台裝置。</div>
+        </div>
+      </section>
+    </aside>
+
+    <div class="main-col">
+      <section class="card" aria-label="結果">
+        <div class="card-pad">
+          <div class="eyebrow">Step 02</div>
+          <div class="card-head">
+            <div class="card-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15v-5m4 5V8m4 7v-3"/></svg>
+              <h2>算出來的號碼</h2>
+            </div>
+          </div>
+          <div class="notice error" id="error" hidden></div>
+          <div id="result">
+            <div class="stat-grid">
+              <div class="result-stat lead"><span>建議挑的號碼</span><strong id="lead-picks"></strong><small id="lead-note"></small></div>
+              <div class="result-stat"><span>算出來的值</span><strong id="lead-value"></strong><small>前後取整數</small></div>
+            </div>
+            <div id="steps"></div>
+            <h3 style="margin: 20px 0 10px">這一本裡所有候選號碼</h3>
+            <div class="tags" id="picks"></div>
+            <p class="inline-hint" id="summary"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-label="官方獎金結構" id="official">
+        <div class="card-pad">
+          <div class="eyebrow">官方公告</div>
+          <div class="card-head">
+            <div class="card-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 11v6M12 7h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z"/></svg>
+              <h2 id="official-title">這款的真實機率</h2>
+            </div>
+          </div>
+          <div class="empty-state" id="official-empty">先選一款彩券。</div>
+          <div id="official-body" hidden>
+            <div class="stats-strip">
+              <div><strong id="o-rate"></strong><span>中獎率</span></div>
+              <div><strong id="o-profit"></strong><span>賺錢率（比票價多）</span></div>
+              <div><strong id="o-ev"></strong><span id="o-ev-note">每張期望值</span></div>
+            </div>
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead><tr><th>獎項</th><th>張數</th><th>機率</th><th>每幾張有一張</th></tr></thead>
+                <tbody id="o-tbody"></tbody>
+              </table>
+            </div>
+            <p class="inline-hint" id="o-note"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-label="一本 100 張">
+        <div class="card-pad">
+          <div class="eyebrow">Step 03</div>
+          <div class="card-head">
+            <div class="card-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>
+              <h2 id="book-title">一本 100 張，挑哪幾張</h2>
+            </div>
+          </div>
+          <div class="book" id="book"></div>
+          <div class="legend">
+            <span><i class="hit"></i>公式挑到的號碼</span>
+            <span><i class="own"></i>你手上這張</span>
+            <span id="legend-sold" hidden><i class="sold"></i>已賣掉</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-label="逐組明細">
+        <div class="card-pad">
+          <div class="eyebrow">明細</div>
+          <div class="card-head">
+            <div class="card-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+              <h2>每一組怎麼算</h2>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>第幾組</th><th>候選號碼</th><th>底數加上加成</th><th>乘出來</th></tr></thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<div class="keypad" id="keypad" hidden role="group" aria-label="數字鍵盤">
+  <div class="keypad-head">
+    <span class="kp-title" id="kp-title">輸入</span>
+    <span class="kp-preview" id="kp-preview"></span>
+    <button type="button" class="icon-button" id="kp-close" aria-label="收起鍵盤">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+  </div>
+  <div class="keypad-grid">
+    <button type="button" class="kp" data-key="1">1</button><button type="button" class="kp" data-key="2">2</button><button type="button" class="kp" data-key="3">3</button>
+    <button type="button" class="kp kp-fn" data-key="backspace" aria-label="退格"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7 6-7ZM12 9l6 6M18 9l-6 6"/></svg></button>
+    <button type="button" class="kp" data-key="4">4</button><button type="button" class="kp" data-key="5">5</button><button type="button" class="kp" data-key="6">6</button>
+    <button type="button" class="kp" data-key="-" aria-label="減號">-</button>
+    <button type="button" class="kp" data-key="7">7</button><button type="button" class="kp" data-key="8">8</button><button type="button" class="kp" data-key="9">9</button>
+    <button type="button" class="kp" data-key="." aria-label="小數點">.</button>
+    <button type="button" class="kp kp-fn" data-key="clear">清除</button><button type="button" class="kp" data-key="0">0</button>
+    <button type="button" class="kp kp-done" data-key="done">完成</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<div class="manual-dock" id="install" hidden>
+  <span id="install-text"></span>
+  <button type="button" class="button" id="install-go" hidden>安裝</button>
+  <button type="button" class="icon-button" id="install-close" aria-label="關閉">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+  </button>
+</div>
+
+<script>
+  (function () {
+    var byId = function (id) { return document.getElementById(id); };
+    var els = { serial: byId("serial"), rate: byId("rate"), step: byId("step"), count: byId("count"), max: byId("max"), min: byId("min"), profit: byId("profit") };
+    var out = {
+      error: byId("error"), result: byId("result"), leadPicks: byId("lead-picks"), leadNote: byId("lead-note"), leadValue: byId("lead-value"),
+      steps: byId("steps"), picks: byId("picks"), summary: byId("summary"), book: byId("book"), tbody: byId("tbody"),
+      legendSold: byId("legend-sold"), wallet: byId("wallet"), walletCount: byId("wallet-count"), toast: byId("toast")
+    };
+    var KEY = "scratch-formula-inputs";
+    var WALLET_KEY = "scratch-wallet";
+    var split = "222";
+    var current = null;
+    var SPLITS = { "222": [2, 2, 2], "111111": [1, 1, 1, 1, 1, 1] };
+    // 各面額歷年（2014–2026，台彩公告）中獎率：款數、最低、中位、最高。中位數當預設值。
+    var PRICE_PRESETS = {
+      "100": { n: 202, min: 22.12, median: 33.0, max: 100.0, profit: 12.03 },
+      "200": { n: 343, min: 24.03, median: 32.0, max: 50.35, profit: 15.2 },
+      "300": { n: 56, min: 31.0, median: 36.0, max: 40.15, profit: 16.44 },
+      "500": { n: 81, min: 31.43, median: 41.0, max: 100.0, profit: 14.79 },
+      "1000": { n: 29, min: 43.97, median: 70.0, max: 70.79, profit: 20.5 },
+      "2000": { n: 14, min: 69.33, median: 69.33, max: 82.55, profit: 10.29 }
+    };
+    var price = "";
+    var mode = "auto";
+    var manualMemo = { step: "0.033", count: "30" };
+
+    function load(key, fallback) {
+      try { var v = JSON.parse(localStorage.getItem(key) || "null"); return v === null ? fallback : v; } catch (error) { return fallback; }
+    }
+    function store(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch (error) { /* storage unavailable */ }
+    }
+
+    var saved = load(KEY, null);
+    if (saved) {
+      for (var key in els) {
+        if (Object.prototype.hasOwnProperty.call(saved, key) && saved[key] !== null && saved[key] !== undefined) {
+          els[key].value = saved[key];
+        }
+      }
+      if (SPLITS[saved.split]) { split = saved.split; }
+      if (PRICE_PRESETS[saved.price]) { price = saved.price; }
+      if (saved.mode === "auto" || saved.mode === "manual") { mode = saved.mode; }
+      if (saved.manualMemo && saved.manualMemo.step !== undefined) { manualMemo = saved.manualMemo; }
+    }
+
+    var toastTimer = null;
+    function toast(message) {
+      out.toast.textContent = message;
+      out.toast.hidden = false;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { out.toast.hidden = true; }, 3200);
+    }
+
+    function round6(value) { return Math.round(value * 1e6) / 1e6; }
+    function pad2(n) { return String(n).padStart(2, "0"); }
+    function pad3(n) { return String(n).padStart(3, "0"); }
+    function plain(value) { return String(round6(value)); }
+    function escapeHtml(text) {
+      return String(text).replace(/[&<>"]/g, function (ch) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[ch];
+      });
+    }
+
+
+    function parseSerial(raw, how) {
+      var digits = String(raw).replace(/\D/g, "");
+      if (digits.length < 6) { return null; }
+      var book = digits.slice(0, 6);
+      var index = digits.length >= 9 ? Number(digits.slice(6, 9)) : null;
+      var parts = [];
+      var at = 0;
+      SPLITS[how].forEach(function (len) { parts.push(book.slice(at, at + len)); at += len; });
+      var d = parts.reduce(function (sum, part) { return sum + Number(part); }, 0);
+      return { book: book, index: index, parts: parts, d: d };
+    }
+
+    // 公式一（加總 100 以上）：加總 × (中獎率 + 0.033 × 組數)
+    // 公式二（加總小於 100）：加總 × (1 + 中獎率 × 組數)
+    function candidates(d, base, step, count, max, min) {
+      var rows = [];
+      for (var k = 1; k <= count; k += 1) {
+        var multiplier = round6(base + step * k);
+        var value = round6(d * multiplier);
+        var low = Math.floor(value);
+        var high = Math.ceil(value);
+        var raw = low === high ? [low] : [low, high];
+        var picks = raw.filter(function (n) { return n >= min && n <= max; });
+        var status = picks.length ? "ok" : (raw.every(function (n) { return n > max; }) ? "over" : "sold");
+        rows.push({ k: k, multiplier: multiplier, value: value, picks: picks, status: status });
+      }
+      return rows;
+    }
+
+    function showError(message) {
+      out.error.textContent = message;
+      out.error.hidden = false;
+      out.result.hidden = true;
+      out.book.textContent = "";
+      out.tbody.textContent = "";
+      current = null;
+    }
+
+    var modeHint = byId("mode-hint");
+    var stepAutoBtn = byId("step-auto");
+    function syncMode() {
+      Array.prototype.forEach.call(document.querySelectorAll("#mode .segment"), function (button) {
+        button.classList.toggle("active", button.getAttribute("data-mode") === mode);
+      });
+      var auto = mode === "auto";
+      els.step.disabled = auto;
+      els.count.disabled = auto;
+      stepAutoBtn.hidden = auto;
+      if (auto) {
+        var ratePct = Number(els.rate.value);
+        var bookSize = Math.max(1, Math.floor(Number(els.max.value) || 0) + 1);
+        if (isFinite(ratePct) && els.rate.value !== "") {
+          els.step.value = String(Math.round(ratePct * 10) / 10000);
+          els.count.value = String(Math.max(1, Math.min(200, Math.round(ratePct / 100 * bookSize))));
+          modeHint.textContent = "加成 " + els.step.value + "（中獎率 ÷ 10），" + els.count.value + " 組（中獎率 × " + bookSize + " 張）。";
+        } else {
+          modeHint.textContent = "";
+        }
+      } else {
+        modeHint.textContent = "加成和組數在進階裡改。";
+      }
+    }
+    function syncPriceButtons() {
+      Array.prototype.forEach.call(document.querySelectorAll("#price .segment"), function (button) {
+        button.classList.toggle("active", button.getAttribute("data-price") === price);
+      });
+    }
+    function syncSplitButtons() {
+      Array.prototype.forEach.call(document.querySelectorAll("#split .segment"), function (button) {
+        button.classList.toggle("active", button.getAttribute("data-split") === split);
+      });
+    }
+
+    function render() {
+      store(KEY, { serial: els.serial.value, rate: els.rate.value, profit: els.profit.value, step: els.step.value, count: els.count.value, max: els.max.value, min: els.min.value, split: split, price: price, mode: mode, manualMemo: manualMemo });
+      syncSplitButtons();
+      syncPriceButtons();
+      syncMode();
+
+      var ticket = parseSerial(els.serial.value, split);
+      var rate = Number(els.rate.value) / 100;
+      var step = Number(els.step.value);
+      var count = Math.max(1, Math.min(200, Math.floor(Number(els.count.value) || 0)));
+      var max = Math.max(0, Math.min(999, Math.floor(Number(els.max.value) || 0)));
+      var min = Math.max(0, Math.min(max, Math.floor(Number(els.min.value) || 0)));
+
+      if (!ticket) { showError("號碼至少要有 6 位數字，請再看一次彩券右上角。"); return; }
+      if (els.rate.value === "" || !isFinite(rate)) { showError("請填中獎率，彩券背面有印。"); return; }
+      if (els.step.value === "" || !isFinite(step)) { showError("進階裡的「公式一每一組加多少」要是數字。"); return; }
+      out.error.hidden = true;
+      out.result.hidden = false;
+
+      var second = ticket.d < 100;
+      var base = second ? 1 : rate;
+      var stepUsed = second ? rate : step;
+      var rows = candidates(ticket.d, base, stepUsed, count, max, min);
+      var featured = rows[Math.min(second ? 1 : 3, count) - 1];
+      var seen = {};
+      var all = [];
+      rows.forEach(function (row) {
+        row.picks.forEach(function (n) { if (!seen[n]) { seen[n] = true; all.push(n); } });
+      });
+      all.sort(function (x, y) { return x - y; });
+      var inRange = rows.filter(function (row) { return row.picks.length > 0; }).length;
+      var ownHit = ticket.index !== null && seen[ticket.index] === true;
+      var leadText = featured.picks.length ? featured.picks.map(pad2).join(" / ") : (featured.status === "sold" ? "已賣掉" : "超出範圍");
+
+      current = { serial: els.serial.value.trim(), rate: els.rate.value, split: split, min: min, d: ticket.d, lead: leadText, picks: all.slice() };
+
+      out.leadPicks.textContent = leadText;
+      out.leadNote.textContent = "第 " + featured.k + " 組";
+      out.leadValue.textContent = featured.value.toFixed(3);
+
+      var splitName = { "222": "2+2+2", "111111": "1+1+1+1+1+1" }[split];
+      out.steps.innerHTML =
+        '<div class="mini-stat"><span>號碼前六碼拆成 ' + splitName + " 相加</span><strong>" + ticket.parts.join(" + ") + " = " + ticket.d + "</strong></div>" +
+        '<div class="mini-stat"><span>' + (second ? "公式二：1 + 中獎率 × " + featured.k : "公式一：中獎率 + 加成 × " + featured.k) + "</span><strong>" + plain(base) + " + " + plain(stepUsed) + " × " + featured.k + " = " + plain(featured.multiplier) + "</strong></div>" +
+        '<div class="mini-stat"><span>兩個相乘</span><strong>' + ticket.d + " × " + plain(featured.multiplier) + " = " + featured.value.toFixed(3) + "</strong></div>";
+
+      out.picks.innerHTML = all.length
+        ? all.map(function (n) {
+            return '<span class="tag green' + (ticket.index === n ? " own" : "") + '">' + pad2(n) + "</span>";
+          }).join("")
+        : '<span class="tag">沒有號碼落在 ' + pad2(min) + "–" + pad2(max) + " 之內</span>";
+
+      var summary = all.length + " 個號碼，" + inRange + " / " + count + " 組落在 " + pad2(min) + "–" + pad2(max) + "。";
+      if (ticket.index !== null) {
+        summary += "這張 " + pad3(ticket.index) + " 號" + (ownHit ? "有在名單裡。" : "不在名單裡。");
+      }
+      out.summary.textContent = summary;
+
+      byId("book-title").textContent = "一本 " + (max + 1) + " 張，挑哪幾張";
+      var cells = "";
+      for (var i = 0; i <= max; i += 1) {
+        var cls = "cell" + (i < min ? " sold" : "") + (seen[i] ? " hit" : "") + (ticket.index === i ? " own" : "");
+        cells += '<div class="' + cls + '" title="' + escapeHtml(pad3(i) + " 號") + '">' + pad2(i) + "</div>";
+      }
+      out.book.innerHTML = cells;
+      out.legendSold.hidden = min === 0;
+
+      out.tbody.innerHTML = rows.map(function (row) {
+        var picks = row.picks.length ? row.picks.map(pad2).join(" / ") : (row.status === "sold" ? "已賣掉" : "超出 " + pad2(min) + "–" + pad2(max));
+        return "<tr" + (row.k === featured.k ? ' class="featured"' : "") + ">" +
+          "<td>" + row.k + "</td>" +
+          '<td class="num' + (row.picks.length ? "" : " out") + '">' + picks + "</td>" +
+          '<td class="num">' + plain(base) + " + " + plain(stepUsed) + " × " + row.k + " = " + plain(row.multiplier) + "</td>" +
+          '<td class="num">' + ticket.d + " × " + plain(row.multiplier) + " = " + row.value.toFixed(3) + "</td></tr>";
+      }).join("");
+      renderWallet();
+    }
+
+    // 卡夾：存在這台裝置的 localStorage
+    function wallet() { var list = load(WALLET_KEY, []); return Array.isArray(list) ? list : []; }
+    function formatDate(iso) {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) { return ""; }
+      return (d.getMonth() + 1) + "/" + d.getDate() + " " + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+    }
+    function renderWallet() {
+      var list = wallet();
+      out.walletCount.textContent = list.length + " 張";
+      if (!list.length) {
+        out.wallet.innerHTML = '<div class="empty-state">還沒有存任何彩券。<br>算好之後按「存進卡夾」。</div>';
+        return;
+      }
+      var activeSerial = current ? current.serial.replace(/\D/g, "") : "";
+      out.wallet.innerHTML = list.map(function (item, i) {
+        var selected = activeSerial && item.serial.replace(/\D/g, "") === activeSerial;
+        return '<div class="data-row' + (selected ? " selected" : "") + '">' +
+          '<button type="button" class="row-main" data-load="' + i + '">' +
+            '<span class="row-no">' + (i + 1) + "</span>" +
+            '<span class="row-content"><span class="row-code">' + escapeHtml(item.serial) + "</span>" +
+            '<span class="row-meta"><span>中獎率 ' + escapeHtml(item.rate) + "%</span><span>·</span><span>" + escapeHtml(formatDate(item.savedAt)) + "</span></span></span>" +
+            '<span class="row-time"><strong>' + escapeHtml(item.lead) + "</strong><small>建議</small></span>" +
+          "</button>" +
+          '<button type="button" class="icon-button row-delete" data-delete="' + i + '" aria-label="刪除">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg>' +
+          "</button></div>";
+      }).join("");
+    }
+    byId("save").addEventListener("click", function () {
+      if (!current) { toast("先把號碼和中獎率填好。"); return; }
+      var list = wallet();
+      var digits = current.serial.replace(/\D/g, "");
+      var existing = -1;
+      list.forEach(function (item, i) { if (item.serial.replace(/\D/g, "") === digits) { existing = i; } });
+      var entry = { serial: current.serial, rate: current.rate, split: current.split, min: current.min, d: current.d, lead: current.lead, picks: current.picks, savedAt: new Date().toISOString() };
+      if (existing >= 0) { list[existing] = entry; } else { list.unshift(entry); }
+      store(WALLET_KEY, list);
+      renderWallet();
+      toast(existing >= 0 ? "已更新卡夾裡的這張。" : "已存進卡夾。");
+    });
+    out.wallet.addEventListener("click", function (event) {
+      var loadBtn = event.target.closest("[data-load]");
+      var delBtn = event.target.closest("[data-delete]");
+      var list = wallet();
+      if (delBtn) {
+        var di = Number(delBtn.getAttribute("data-delete"));
+        if (list[di]) { list.splice(di, 1); store(WALLET_KEY, list); renderWallet(); toast("已從卡夾移除。"); }
+        return;
+      }
+      if (loadBtn) {
+        var item = list[Number(loadBtn.getAttribute("data-load"))];
+        if (!item) { return; }
+        els.serial.value = item.serial;
+        els.rate.value = item.rate;
+        if (SPLITS[item.split]) { split = item.split; }
+        els.min.value = item.min || 0;
+        render();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
+
+    Object.keys(els).forEach(function (key) { if (key !== "profit") { els[key].addEventListener("input", render); } });
+    els.profit.addEventListener("input", function () { try { var saved = load(KEY, {}) || {}; saved.profit = els.profit.value; store(KEY, saved); } catch (error) { /* ignore */ } });
+    // 彩券款式：台彩公告的本期整體中獎率（tickets.json）
+    var TICKETS = [];
+    var ticketSelect = byId("ticket");
+    var ticketSearch = byId("ticket-search");
+    var ticketHint = byId("ticket-hint");
+    function fillTicketOptions(filter) {
+      var q = (filter || "").trim().toLowerCase();
+      var groups = {};
+      var order = [];
+      TICKETS.forEach(function (t) {
+        var hay = (t.vol + " " + t.name + " " + t.price).toLowerCase();
+        if (price && String(t.price) !== price) { return; }
+        if (q && hay.indexOf(q) === -1) { return; }
+        var g = t.onSale ? "熱賣中" : t.start.slice(0, 4) + " 年";
+        if (!groups[g]) { groups[g] = []; order.push(g); }
+        groups[g].push(t);
+      });
+      var htmlOut = '<option value="">自己填中獎率</option>';
+      order.forEach(function (g) {
+        htmlOut += '<optgroup label="' + escapeHtml(g) + '">' + groups[g].map(function (t) {
+          return '<option value="' + escapeHtml(t.vol) + '">' + escapeHtml(t.vol + " " + t.name + " $" + t.price + " · " + t.rate.toFixed(2) + "%") + "</option>";
+        }).join("") + "</optgroup>";
+      });
+      ticketSelect.innerHTML = htmlOut;
+      var shown = order.reduce(function (n, g) { return n + groups[g].length; }, 0);
+      ticketHint.textContent = (q || price) ? shown + " 款" : TICKETS.length + " 款";
+    }
+    var oEls = { empty: byId("official-empty"), body: byId("official-body"), title: byId("official-title"), rate: byId("o-rate"), profit: byId("o-profit"), ev: byId("o-ev"), evNote: byId("o-ev-note"), tbody: byId("o-tbody"), note: byId("o-note") };
+    function fmtMoney(n) { return "NT$" + Number(n).toLocaleString("en-US"); }
+    function fmtInt(n) { return Number(n).toLocaleString("en-US"); }
+    function fmtPct(p) { return p >= 1 ? p.toFixed(2) + "%" : p >= 0.01 ? p.toFixed(3) + "%" : p >= 0.0001 ? p.toFixed(4) + "%" : "<0.0001%"; }
+    function renderOfficial(t) {
+      if (!t || !t.tiers || !t.issued) {
+        oEls.body.hidden = true; oEls.empty.hidden = false; oEls.title.textContent = "這款的真實機率";
+        if (t) { oEls.empty.textContent = t.name + "：台彩公告只有整體中獎率 " + t.rate.toFixed(2) + "%，沒有各獎項張數。"; }
+        return;
+      }
+      var issued = t.issued;
+      var winners = 0, profitWinners = 0, payout = 0;
+      t.tiers.forEach(function (row) { winners += row[1]; payout += row[0] * row[1]; if (row[0] > t.price) { profitWinners += row[1]; } });
+      var ev = payout / issued;
+      oEls.title.textContent = t.name + " 的真實機率";
+      oEls.rate.textContent = t.rate.toFixed(2) + "%";
+      oEls.profit.textContent = (profitWinners / issued * 100).toFixed(2) + "%";
+      oEls.ev.textContent = "NT$" + ev.toFixed(1);
+      oEls.evNote.textContent = "每張期望值，售價 $" + t.price + "，回本率 " + (ev / t.price * 100).toFixed(1) + "%";
+      oEls.tbody.innerHTML = t.tiers.map(function (row) {
+        var p = row[1] / issued * 100;
+        var label = row[2] ? row[2] : fmtMoney(row[0]);
+        return "<tr" + (row[0] === t.tiers[0][0] ? ' class="featured"' : "") + '><td>' + escapeHtml(label) + '</td><td class="num">' + fmtInt(row[1]) + '</td><td class="num">' + fmtPct(p) + '</td><td class="num">1 : ' + fmtInt(Math.round(issued / row[1])) + "</td></tr>";
+      }).join("");
+      oEls.note.textContent = "發行 " + fmtInt(issued) + " 張，中獎 " + fmtInt(winners) + " 張。";
+      els.profit.value = String(Math.round(profitWinners / issued * 10000) / 100);
+      oEls.empty.hidden = true; oEls.body.hidden = false;
+    }
+    function applyTicket(vol) {
+      var t = null;
+      TICKETS.forEach(function (x) { if (x.vol === vol) { t = x; } });
+      if (!t) { return; }
+      els.rate.value = String(t.rate);
+      if (PRICE_PRESETS[String(t.price)]) { price = String(t.price); }
+      render();
+      renderOfficial(t);
+      toast(t.name + "：台彩公告中獎率 " + t.rate.toFixed(2) + "%，已填入。");
+    }
+    ticketSearch.addEventListener("input", function () { fillTicketOptions(ticketSearch.value); });
+    ticketSelect.addEventListener("change", function () { if (ticketSelect.value) { applyTicket(ticketSelect.value); } else { renderOfficial(null); } });
+    fetch("tickets.json").then(function (r) { return r.json(); }).then(function (data) {
+      TICKETS = (data.tickets || []).filter(function (t) { return typeof t.rate === "number"; });
+      fillTicketOptions("");
+    }).catch(function () { ticketHint.textContent = "款式清單暫時讀不到，請直接填中獎率。"; });
+    Array.prototype.forEach.call(document.querySelectorAll("#mode .segment"), function (button) {
+      button.addEventListener("click", function () {
+        var next = button.getAttribute("data-mode");
+        if (next === mode) { return; }
+        if (next === "auto") { manualMemo = { step: els.step.value, count: els.count.value }; }
+        else { els.step.value = manualMemo.step; els.count.value = manualMemo.count; }
+        mode = next;
+        render();
+        toast(mode === "auto" ? "自動：加成和組數照中獎率推。" : "手動：可以自己改加成和組數。");
+      });
+    });
+    var priceHint = byId("price-hint");
+    byId("divisor-apply").addEventListener("click", function () {
+      var value = Number(els.profit.value);
+      var divisor = Number(byId("divisor").value);
+      if (els.profit.value === "" || !isFinite(value)) { toast("先填賺錢率。"); return; }
+      if (byId("divisor").value === "" || !isFinite(divisor) || divisor === 0) { toast("填一個不是 0 的數。"); return; }
+      els.rate.value = String(Math.round(value / divisor * 100000) / 100000);
+      render();
+    });
+    byId("profit-apply").addEventListener("click", function (event) {
+      var button = event.target.closest("[data-div]");
+      if (!button) { return; }
+      var value = Number(els.profit.value);
+      if (els.profit.value === "" || !isFinite(value)) { toast("先填賺錢率。"); return; }
+      els.rate.value = String(Math.round(value / Number(button.getAttribute("data-div")) * 100000) / 100000);
+      render();
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("#price .segment"), function (button) {
+      button.addEventListener("click", function () {
+        price = button.getAttribute("data-price");
+        var preset = PRICE_PRESETS[price];
+        if (preset) {
+          els.rate.value = String(preset.median);
+          els.profit.value = String(preset.profit);
+          priceHint.textContent = preset.n + " 款，中獎率 " + preset.min.toFixed(2) + "% 到 " + preset.max.toFixed(2) + "%。";
+          ticketSelect.value = "";
+          renderOfficial(null);
+          toast("面額 $" + price + "：中獎率先用 " + preset.median.toFixed(2) + "%。");
+        } else {
+          priceHint.textContent = "";
+        }
+        fillTicketOptions(ticketSearch.value);
+        render();
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("#split .segment"), function (button) {
+      button.addEventListener("click", function () { split = button.getAttribute("data-split"); render(); });
+    });
+    byId("step-auto").addEventListener("click", function () {
+      var rate = Number(els.rate.value);
+      if (!isFinite(rate) || els.rate.value === "") { toast("先填中獎率。"); return; }
+      els.step.value = String(Math.round(rate) / 1000);
+      render();
+      toast("加成改成 " + els.step.value + "（中獎率 " + rate + "% ÷ 10）。");
+    });
+    render();
+
+    // 自製數字鍵盤：觸控裝置上取代系統鍵盤，有「-」和「.」。
+    var keypad = byId("keypad");
+    var kpTitle = byId("kp-title");
+    var kpPreview = byId("kp-preview");
+    var KEYPAD_FIELDS = { serial: "彩券號碼", rate: "中獎率（%）", profit: "賺錢率（%）", divisor: "除以", step: "每一組加多少", count: "要算幾組", max: "一本最後一張", min: "剩下的最小號碼" };
+    var coarse = window.matchMedia("(pointer: coarse)").matches;
+    var activeField = null;
+    function keypadAllowed(key) {
+      if (!activeField) { return false; }
+      if (key === "-") { return activeField === els.serial; }
+      if (key === ".") { return activeField === els.rate || activeField === els.profit || activeField === els.step || activeField.id === "divisor"; }
+      return true;
+    }
+    function openKeypad(input) {
+      activeField = input;
+      kpTitle.textContent = KEYPAD_FIELDS[input.id] || "輸入";
+      kpPreview.textContent = input.value;
+      keypad.hidden = false;
+      document.body.classList.add("keypad-open");
+      setTimeout(function () { try { input.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (error) { /* ignore */ } }, 50);
+    }
+    function closeKeypad() {
+      keypad.hidden = true;
+      document.body.classList.remove("keypad-open");
+      if (activeField) { activeField.blur(); }
+      activeField = null;
+    }
+    Object.keys(KEYPAD_FIELDS).forEach(function (id) {
+      var input = els[id] || byId(id);
+      if (!input) { return; }
+      if (coarse) { input.setAttribute("inputmode", "none"); }
+      input.addEventListener("focus", function () { if (coarse) { openKeypad(input); } });
+      input.addEventListener("input", function () { if (activeField === input) { kpPreview.textContent = input.value; } });
+    });
+    document.addEventListener("focusin", function (event) {
+      if (!keypad.hidden && activeField && event.target !== activeField && !keypad.contains(event.target)) { closeKeypad(); }
+    });
+    keypad.addEventListener("pointerdown", function (event) {
+      if (event.target.closest(".kp") || event.target.closest("#kp-close")) { event.preventDefault(); }
+    });
+    keypad.addEventListener("click", function (event) {
+      var button = event.target.closest(".kp");
+      if (!button || !activeField) { return; }
+      var key = button.getAttribute("data-key");
+      var value = activeField.value;
+      if (key === "done") { closeKeypad(); return; }
+      if (key === "backspace") { value = value.slice(0, -1); }
+      else if (key === "clear") { value = ""; }
+      else if (keypadAllowed(key)) {
+        if (key === "." && value.indexOf(".") !== -1) { return; }
+        if (key === "-" && value.indexOf("-") !== -1) { return; }
+        if (activeField.disabled) { return; }
+        value += key;
+      } else { return; }
+      activeField.value = value;
+      activeField.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    byId("kp-close").addEventListener("click", closeKeypad);
+
+    // 自動更新：偵測到新版的 service worker 就重載一次，重載後提示。
+    try {
+      if (sessionStorage.getItem("scratch-updated") === "1") { sessionStorage.removeItem("scratch-updated"); toast("已更新到最新版。"); }
+    } catch (error) { /* ignore */ }
+    if ("serviceWorker" in navigator) {
+      var hadController = !!navigator.serviceWorker.controller;
+      var refreshing = false;
+      navigator.serviceWorker.addEventListener("controllerchange", function () {
+        if (!hadController || refreshing) { return; }
+        refreshing = true;
+        try { sessionStorage.setItem("scratch-updated", "1"); } catch (error) { /* ignore */ }
+        window.location.reload();
+      });
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("sw.js").then(function (registration) {
+          function check() { registration.update().catch(function () { /* offline */ }); }
+          document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") { check(); } });
+          window.addEventListener("online", check);
+          setInterval(check, 60 * 60 * 1000);
+        }).catch(function () { /* offline support unavailable */ });
+      });
+    }
+
+    var dock = byId("install");
+    var dockText = byId("install-text");
+    var goBtn = byId("install-go");
+    var closeBtn = byId("install-close");
+    var DISMISS_KEY = "scratch-install-dismissed";
+    var standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    var dismissed = false;
+    try { dismissed = localStorage.getItem(DISMISS_KEY) === "1"; } catch (error) { /* ignore */ }
+    var deferredPrompt = null;
+
+    function showDock(text, withButton) {
+      if (standalone || dismissed) { return; }
+      dockText.textContent = text;
+      goBtn.hidden = !withButton;
+      dock.hidden = false;
+    }
+    window.addEventListener("beforeinstallprompt", function (event) {
+      event.preventDefault();
+      deferredPrompt = event;
+      showDock("加到主畫面，沒網路也能算，有新版會自己更新。", true);
+    });
+    goBtn.addEventListener("click", function () {
+      if (!deferredPrompt) { return; }
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function () { deferredPrompt = null; dock.hidden = true; });
+    });
+    closeBtn.addEventListener("click", function () {
+      dock.hidden = true;
+      try { localStorage.setItem(DISMISS_KEY, "1"); } catch (error) { /* ignore */ }
+    });
+    window.addEventListener("appinstalled", function () { dock.hidden = true; });
+    var isIos = /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIos && !standalone) {
+      showDock("用 Safari 的「分享」，再選「加入主畫面」。", false);
+    }
+  })();
+</script>
+</body>
+</html>
