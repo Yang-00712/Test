@@ -1,0 +1,548 @@
+<title>刮刮樂公式試算</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
+<style>
+  /* Layout: one 680px column. A perforated ticket-stub card for inputs, a latex-silver panel with the
+     worked formula and the picks, a 10-wide "一本 100 張" grid of ticket indexes, the k table, then the post. */
+  :root {
+    --bg: #fbf6e6;
+    --fg: #2b1a30;
+    --muted: #6e5c74;
+    --surface: #fffdf7;
+    --line: #e8dcbf;
+    --accent: #c41c6b;
+    --accent-soft: #fbe3ee;
+    --accent-fg: #ffffff;
+    --latex: #dad7cf;
+    --latex-fg: #2b1a30;
+    --hit: #0f7a4d;
+    --hit-soft: #dcf3e7;
+    --warn: #8a5300;
+    --warn-soft: #fff1d6;
+    --display: "Noto Serif TC", "PingFang TC", "Microsoft JhengHei", serif;
+    --body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+    --mono: "DM Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1b1322;
+      --fg: #f3eaf5;
+      --muted: #b7a7bd;
+      --surface: #251b2e;
+      --line: #3d2f49;
+      --accent: #ff64a8;
+      --accent-soft: #3d1f31;
+      --accent-fg: #1b1322;
+      --latex: #3a3443;
+      --latex-fg: #f3eaf5;
+      --hit: #4fd394;
+      --hit-soft: #173a2b;
+      --warn: #f2b45e;
+      --warn-soft: #3b2a12;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1b1322;
+    --fg: #f3eaf5;
+    --muted: #b7a7bd;
+    --surface: #251b2e;
+    --line: #3d2f49;
+    --accent: #ff64a8;
+    --accent-soft: #3d1f31;
+    --accent-fg: #1b1322;
+    --latex: #3a3443;
+    --latex-fg: #f3eaf5;
+    --hit: #4fd394;
+    --hit-soft: #173a2b;
+    --warn: #f2b45e;
+    --warn-soft: #3b2a12;
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.65;
+  }
+  .wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    padding-block: 28px 56px;
+    padding-inline: 16px;
+    display: grid;
+    gap: 28px;
+  }
+  h1, h2 {
+    font-family: var(--display);
+    text-wrap: balance;
+    margin: 0;
+  }
+  h1 {
+    font-weight: 900;
+    font-size: clamp(30px, 6vw, 42px);
+    line-height: 1.15;
+    margin: 4px 0 10px;
+  }
+  h2 {
+    font-weight: 700;
+    font-size: 19px;
+  }
+  .eyebrow {
+    margin: 0;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+  .eyebrow a { color: inherit; }
+  .lede {
+    margin: 0;
+    color: var(--muted);
+    max-width: 36em;
+  }
+  section { display: grid; gap: 12px; min-width: 0; }
+
+  .ticket {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px;
+    gap: 14px;
+  }
+  .ticket::before {
+    content: "";
+    position: absolute;
+    inset: 7px;
+    border: 1.5px dashed var(--line);
+    border-radius: 10px;
+    pointer-events: none;
+  }
+  .ticket-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .ticket-head small {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  .fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .field { display: grid; gap: 4px; min-width: 0; }
+  .field.wide { grid-column: 1 / -1; }
+  .field .lbl { font-size: 13px; font-weight: 500; }
+  .field input {
+    font: 500 18px/1.2 var(--mono);
+    font-variant-numeric: tabular-nums;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--fg);
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .field input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .field small {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .latex {
+    background: var(--latex);
+    color: var(--latex-fg);
+    border-radius: 14px;
+    padding: 20px;
+    display: grid;
+    gap: 14px;
+  }
+  .steps {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 15px;
+    display: grid;
+    gap: 10px;
+    overflow-x: auto;
+  }
+  .steps .k {
+    display: block;
+    font-family: var(--body);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .steps strong { color: var(--accent); font-weight: 500; }
+  .big {
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: clamp(36px, 9vw, 56px);
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+  .err { font-family: var(--body); color: var(--accent); }
+  .picks { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .chip {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 15px;
+    padding: 3px 11px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-fg);
+  }
+  .chip.own { outline: 2px solid var(--hit); outline-offset: 2px; }
+  .summary { font-size: 13px; color: var(--muted); margin: 0; }
+
+  .book {
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .cell {
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    font: 500 12px var(--mono);
+    font-variant-numeric: tabular-nums;
+    border-radius: 6px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--muted);
+  }
+  .cell.hit {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .cell.own { box-shadow: inset 0 0 0 2px var(--hit); color: var(--hit); }
+  .cell.hit.own { color: var(--hit); }
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .legend i {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    vertical-align: -2px;
+    margin-right: 5px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .legend i.hit { background: var(--accent-soft); border-color: var(--accent); }
+  .legend i.own { box-shadow: inset 0 0 0 2px var(--hit); }
+
+  .tablewrap {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  th, td {
+    text-align: right;
+    padding: 8px 14px;
+    border-top: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  th {
+    border-top: 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  th:last-child, td:last-child { text-align: left; }
+  td.mono { font-family: var(--mono); }
+  tr.featured td { background: var(--accent-soft); }
+  td.out { color: var(--muted); }
+
+  .note {
+    background: var(--warn-soft);
+    color: var(--warn);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px;
+    margin: 0;
+  }
+  details {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+    padding: 12px 16px;
+  }
+  summary { cursor: pointer; font-weight: 500; }
+  summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  .post {
+    white-space: pre-line;
+    margin: 12px 0 0;
+    padding-left: 14px;
+    border-left: 3px solid var(--accent);
+    color: var(--fg);
+  }
+  .post + .post { margin-top: 16px; }
+  .post-meta { font-size: 12px; color: var(--muted); margin: 16px 0 0; }
+  .qa { margin: 8px 0 0; padding-left: 18px; }
+  .qa li { margin: 4px 0; }
+  .qa b { font-weight: 500; }
+  @media (prefers-reduced-motion: no-preference) {
+    .cell { transition: background-color 120ms ease, color 120ms ease; }
+  }
+</style>
+
+<main class="wrap">
+  <header>
+    <p class="eyebrow">Threads 貼文 <a href="https://www.threads.com/@paulchu0258/post/DeV5aAamdix">@paulchu0258</a> 的「刮刮樂公式」</p>
+    <h1>刮刮樂公式試算</h1>
+    <p class="lede">把彩券編號拆成 A、B、C 相加得 D，再乘上（中獎率 + N）。這是刮友圈流傳的民間算法，不是台彩官方公式，也沒有統計依據，當遊戲玩就好。</p>
+  </header>
+
+  <section class="ticket" aria-label="輸入">
+    <div class="ticket-head">
+      <h2>你的彩券</h2>
+      <small>NT$100 嗨刮 123 範例：034391-055</small>
+    </div>
+    <div class="fields">
+      <label class="field wide">
+        <span class="lbl">彩券編號</span>
+        <input id="serial" inputmode="numeric" autocomplete="off" value="034391-055">
+        <small>右上角的編號。前六碼拆成 A、B、C；「-055」是這張票在一本裡的票號，可以不填。</small>
+      </label>
+      <label class="field">
+        <span class="lbl">中獎率 p（%）</span>
+        <input id="rate" type="number" inputmode="decimal" min="0" max="100" step="0.1" value="30">
+        <small>彩券背面印的該款中獎率，每款不一樣。</small>
+      </label>
+      <label class="field">
+        <span class="lbl">步長 s</span>
+        <input id="step" type="number" inputmode="decimal" min="0" step="0.001" value="0.033">
+        <small>作者用 0.033，說是「中獎率 30% 往後退一位」。</small>
+      </label>
+      <label class="field">
+        <span class="lbl">跑幾個 k</span>
+        <input id="count" type="number" inputmode="numeric" min="1" max="200" step="1" value="30">
+        <small>N = s × k。一本約中 30 張，作者設 30。</small>
+      </label>
+      <label class="field">
+        <span class="lbl">票號上限</span>
+        <input id="max" type="number" inputmode="numeric" min="0" max="999" step="1" value="99">
+        <small>一本 100 張，票號 000 到 099。</small>
+      </label>
+    </div>
+  </section>
+
+  <section aria-label="計算結果">
+    <div class="latex">
+      <div class="steps" id="steps"></div>
+      <div class="picks" id="picks"></div>
+      <p class="summary" id="summary"></p>
+    </div>
+  </section>
+
+  <section aria-label="一本 100 張">
+    <h2>這一本裡被點到的票號</h2>
+    <div class="book" id="book"></div>
+    <div class="legend">
+      <span><i class="hit"></i>公式點到的票號</span>
+      <span><i class="own"></i>你輸入的這張票</span>
+    </div>
+  </section>
+
+  <section aria-label="逐項計算">
+    <h2>k = 1 開始逐項算</h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>k</th><th>p + s × k</th><th>D × (p + s × k)</th><th>候選票號</th></tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-label="原文">
+    <details>
+      <summary>貼文原文與作者補充</summary>
+      <p class="post-meta">@paulchu0258，1/2</p>
+      <blockquote class="post">刮刮樂公式
+A=03，B=43，C=91
+A+B+C=D
+03+43+91=137
+這款中獎率約 30%（彩券背面有寫該款中獎率，每款不一樣）
+137X0.3+N (N=0.033X1,2,3....)
+137X（(0.3+（0.033X3)）
+=137X（0.3+0.99）
+=137X0.399
+=54.663
+所以選 54 或 55
+現在 AI 功能強大，興趣的可以寫成程式試試看
+一本大約中 30 張，所以設定跑 30 個號碼
+總結：
+A+B+C=D
+DX（中獎率 +N)=中獎號碼</blockquote>
+      <p class="post-meta">原文的「0.99」應為 0.099（0.033 × 3），後面的 0.399 和 54.663 都是用 0.099 算的。附圖是 NT$100「嗨刮 123」，編號 034391-055。</p>
+      <p class="post-meta">@paulchu0258，2/2</p>
+      <blockquote class="post">以前沒 AI，沒中獎機率，所以要一直按計算機算號碼，覺得不好用就冰在冷凍庫😎</blockquote>
+      <p class="post-meta">作者在留言區的補充</p>
+      <ul class="qa">
+        <li><b>N 是什麼？</b>N 是中獎率係數，每一款不一樣，是變數，這部分就可以訓練 AI 算出來。</li>
+        <li><b>ABC 套用在每一款嗎？</b>對，差別在係數（中獎率設定）。</li>
+        <li><b>0.033 是固定的嗎？</b>不是固定，每款中獎機率不同，0.33 是中獎率 30% 再往後退一位，0.3 變成 0.03。</li>
+        <li><b>為什麼拆成 03、43、91？</b>用三/三數字會太大。如果是 943768 拆成 943+768=1711。一本只有 100 張，所以盡量把數值控制在百位比較好算。</li>
+        <li><b>x3 怎麼決定？</b>就是 1,2,3,4,5,6.....一個個試，所以才會說要用 AI 輔助。</li>
+        <li><b>中獎率 0.55 怎麼算？</b>DXN（N=0.54 或 0.56）。</li>
+        <li><b>如何挑大獎？</b>我還沒中過，沒有樣本參考研究。</li>
+      </ul>
+    </details>
+    <p class="note">中獎率是整款彩券的平均比例，和一本裡哪一張會中沒有關係。這個頁面只是把貼文的算式寫成程式讓你試玩，沒有任何預測效力。</p>
+  </section>
+</main>
+
+<script>
+  (function () {
+    var byId = function (id) { return document.getElementById(id); };
+    var els = { serial: byId("serial"), rate: byId("rate"), step: byId("step"), count: byId("count"), max: byId("max") };
+    var out = { steps: byId("steps"), picks: byId("picks"), summary: byId("summary"), book: byId("book"), tbody: byId("tbody") };
+    var KEY = "scratch-formula-inputs";
+
+    try {
+      var saved = JSON.parse(localStorage.getItem(KEY) || "null");
+      if (saved) {
+        for (var key in els) {
+          if (Object.prototype.hasOwnProperty.call(saved, key) && saved[key] !== null && saved[key] !== undefined) {
+            els[key].value = saved[key];
+          }
+        }
+      }
+    } catch (error) { /* storage unavailable: use defaults */ }
+
+    function round6(value) { return Math.round(value * 1e6) / 1e6; }
+    function pad2(n) { return String(n).padStart(2, "0"); }
+    function pad3(n) { return String(n).padStart(3, "0"); }
+    function plain(value) { return String(round6(value)); }
+    function escapeHtml(text) {
+      return String(text).replace(/[&<>"]/g, function (ch) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[ch];
+      });
+    }
+
+    function parseSerial(raw) {
+      var digits = String(raw).replace(/\D/g, "");
+      if (digits.length < 6) { return null; }
+      var book = digits.slice(0, 6);
+      var index = digits.length >= 9 ? Number(digits.slice(6, 9)) : null;
+      var a = Number(book.slice(0, 2));
+      var b = Number(book.slice(2, 4));
+      var c = Number(book.slice(4, 6));
+      return { book: book, index: index, a: a, b: b, c: c, d: a + b + c };
+    }
+
+    function candidates(d, rate, step, count, max) {
+      var rows = [];
+      for (var k = 1; k <= count; k += 1) {
+        var multiplier = round6(rate + step * k);
+        var value = round6(d * multiplier);
+        var low = Math.floor(value);
+        var high = Math.ceil(value);
+        var picks = low === high ? [low] : [low, high];
+        picks = picks.filter(function (n) { return n >= 0 && n <= max; });
+        rows.push({ k: k, multiplier: multiplier, value: value, picks: picks });
+      }
+      return rows;
+    }
+
+    function render() {
+      try {
+        localStorage.setItem(KEY, JSON.stringify({
+          serial: els.serial.value, rate: els.rate.value, step: els.step.value, count: els.count.value, max: els.max.value
+        }));
+      } catch (error) { /* storage unavailable: nothing to remember */ }
+
+      var ticket = parseSerial(els.serial.value);
+      var rate = Number(els.rate.value) / 100;
+      var step = Number(els.step.value);
+      var count = Math.max(1, Math.min(200, Math.floor(Number(els.count.value) || 0)));
+      var max = Math.max(0, Math.min(999, Math.floor(Number(els.max.value) || 0)));
+
+      if (!ticket || !isFinite(rate) || !isFinite(step) || els.rate.value === "" || els.step.value === "") {
+        out.steps.innerHTML = '<div class="err">請輸入至少 6 位數字的彩券編號，中獎率和步長也要是數字。</div>';
+        out.picks.textContent = "";
+        out.summary.textContent = "";
+        out.book.textContent = "";
+        out.tbody.textContent = "";
+        return;
+      }
+
+      var rows = candidates(ticket.d, rate, step, count, max);
+      var featured = rows[Math.min(3, count) - 1];
+      var seen = {};
+      var all = [];
+      rows.forEach(function (row) {
+        row.picks.forEach(function (n) { if (!seen[n]) { seen[n] = true; all.push(n); } });
+      });
+      all.sort(function (x, y) { return x - y; });
+      var inRange = rows.filter(function (row) { return row.picks.length > 0; }).length;
+      var ownHit = ticket.index !== null && seen[ticket.index] === true;
+
+      out.steps.innerHTML =
+        '<div><span class="k">拆解編號 ' + escapeHtml(ticket.book) + '</span>A = ' + pad2(ticket.a) + '，B = ' + pad2(ticket.b) + '，C = ' + pad2(ticket.c) + '</div>' +
+        '<div><span class="k">A + B + C = D</span>' + pad2(ticket.a) + ' + ' + pad2(ticket.b) + ' + ' + pad2(ticket.c) + ' = <strong>' + ticket.d + '</strong></div>' +
+        '<div><span class="k">D × (p + s × k)，作者示範 k = ' + featured.k + '</span>' + ticket.d + ' × (' + plain(rate) + ' + ' + plain(step) + ' × ' + featured.k + ') = ' + ticket.d + ' × ' + plain(featured.multiplier) + '</div>' +
+        '<div class="big">' + featured.value.toFixed(3) + '</div>' +
+        '<div>所以選 <strong>' + (featured.picks.length ? featured.picks.map(pad2).join(" 或 ") : "（超出票號範圍）") + '</strong></div>';
+
+      out.picks.innerHTML = all.length
+        ? all.map(function (n) {
+            return '<span class="chip' + (ticket.index === n ? " own" : "") + '">' + pad2(n) + '</span>';
+          }).join("")
+        : '<span class="summary">k = 1…' + count + ' 都超出 00–' + pad2(max) + '，沒有候選票號。</span>';
+
+      var summary = '候選票號 ' + all.length + ' 個（k = 1…' + count + '，其中 ' + inRange + ' 個 k 落在 00–' + pad2(max) + ' 之內，' + (count - inRange) + ' 個超出）。';
+      if (ticket.index !== null) {
+        summary += ' 這張票的本內票號是 ' + pad3(ticket.index) + '，' + (ownHit ? "在候選名單內。" : "不在候選名單內。");
+      }
+      out.summary.textContent = summary;
+
+      var cells = "";
+      for (var i = 0; i <= max; i += 1) {
+        var cls = "cell" + (seen[i] ? " hit" : "") + (ticket.index === i ? " own" : "");
+        cells += '<div class="' + cls + '" title="票號 ' + pad3(i) + '">' + pad2(i) + '</div>';
+      }
+      out.book.innerHTML = cells;
+
+      out.tbody.innerHTML = rows.map(function (row) {
+        var picks = row.picks.length ? row.picks.map(pad2).join(" / ") : "超出 00–" + pad2(max);
+        return '<tr' + (row.k === featured.k ? ' class="featured"' : "") + '>' +
+          '<td class="mono">' + row.k + '</td>' +
+          '<td class="mono">' + plain(row.multiplier) + '</td>' +
+          '<td class="mono">' + row.value.toFixed(3) + '</td>' +
+          '<td class="mono' + (row.picks.length ? "" : " out") + '">' + picks + '</td></tr>';
+      }).join("");
+    }
+
+    Object.keys(els).forEach(function (key) { els[key].addEventListener("input", render); });
+    render();
+  })();
+</script>
