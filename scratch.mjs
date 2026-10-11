@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 刮刮樂公式試算（命令列版）。
 // 來源：https://www.threads.com/@paulchu0258/post/DeV5aAamdix
-// 用法：node scratch.mjs 034391-055 --rate 30 [--step 0.033] [--count 30] [--max 99] [--min 0]
+// 用法：node scratch.mjs 034391-055 --rate 30 [--step 0.033] [--count 30] [--max 99] [--min 0] [--split 222|33|123]
 // 加總 100 以上：加總 × (中獎率 + step × k)；加總小於 100：加總 × (1 + 中獎率 × k)。
 import { parseArgs } from "node:util";
 
@@ -10,18 +10,24 @@ const pad2 = (n) => String(n).padStart(2, "0");
 const pad3 = (n) => String(n).padStart(3, "0");
 const plain = (value) => String(round6(value));
 
-/** 把彩券編號拆成 A、B、C 與 D。接受 034391、034391-055、034391055。 */
-export function parseSerial(raw) {
+const SPLITS = { 222: [2, 2, 2], 33: [3, 3], 123: [1, 2, 3] };
+
+/** 把彩券編號前六碼依拆法拆開相加。接受 034391、034391-055、034391055。 */
+export function parseSerial(raw, split = "222") {
   const digits = String(raw).replace(/\D/g, "");
-  if (digits.length < 6) {
+  if (digits.length < 6 || !SPLITS[split]) {
     return null;
   }
   const book = digits.slice(0, 6);
   const index = digits.length >= 9 ? Number(digits.slice(6, 9)) : null;
-  const a = Number(book.slice(0, 2));
-  const b = Number(book.slice(2, 4));
-  const c = Number(book.slice(4, 6));
-  return { book, index, a, b, c, d: a + b + c };
+  const parts = [];
+  let at = 0;
+  for (const len of SPLITS[split]) {
+    parts.push(book.slice(at, at + len));
+    at += len;
+  }
+  const d = parts.reduce((sum, part) => sum + Number(part), 0);
+  return { book, index, parts, d };
 }
 
 /** 依 D 決定底數與每組加成，產生 k = 1..count 的候選票號。 */
@@ -68,15 +74,16 @@ function main() {
       count: { type: "string", short: "n", default: "30" },
       max: { type: "string", short: "m", default: "99" },
       min: { type: "string", default: "0" },
+      split: { type: "string", default: "222" },
     },
   });
   const serial = positionals[0];
   if (!serial) {
     usage("缺少彩券編號。");
   }
-  const ticket = parseSerial(serial);
+  const ticket = parseSerial(serial, values.split);
   if (!ticket) {
-    usage("彩券編號至少要有 6 位數字。");
+    usage("彩券編號至少要有 6 位數字，--split 只能是 222、33 或 123。");
   }
   if (values.rate === undefined) {
     usage("缺少 --rate（彩券背面印的中獎率，百分比）。");
@@ -108,11 +115,9 @@ function main() {
     `彩券編號 ${ticket.book}${ticket.index === null ? "" : `-${pad3(ticket.index)}`}`,
   );
   console.log(
-    `A = ${pad2(ticket.a)}，B = ${pad2(ticket.b)}，C = ${pad2(ticket.c)}`,
+    `前六碼拆成 ${values.split.split("").join("+")}：${ticket.parts.join("、")}`,
   );
-  console.log(
-    `A + B + C = D → ${pad2(ticket.a)} + ${pad2(ticket.b)} + ${pad2(ticket.c)} = ${ticket.d}`,
-  );
+  console.log(`相加 → ${ticket.parts.join(" + ")} = ${ticket.d}`);
   console.log(
     second
       ? `D = ${ticket.d} 小於 100，用公式二：D × (1 + p × k)，p = ${plain(rate)}`
